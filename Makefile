@@ -4,7 +4,7 @@ FILES=main.cpp
 OBJS=$(FILES:.cpp=.o)
 
 KMT_CPPFLAGS=-I /opt/hsakmt/include
-KMT_LDFLAGS=-L /opt/hsakmt/lib -l hsakmt
+KMT_LDFLAGS=-L/opt/hsakmt/lib/ -lhsakmt
 
 HCC_CONFIG=/opt/hcc-amdgpu/bin/hcc-config
 CXX=/opt/hcc-amdgpu/bin/clang++
@@ -15,7 +15,7 @@ HCC_LDFLAGS=$(shell $(HCC_CONFIG) --ldflags --install)
 
 CPP_FLAGS=$(KMT_CPPFLAGS) $(HCC_CPPFLAGS)
 CXX_FLAGS=$(HCC_CXXFLAGS)
-LD_FLAGS=$(HCC_LDFLAGS)
+LD_FLAGS=$(KMT_LDFLAGS) $(HCC_LDFLAGS)
 
 $(PROJECT): $(OBJS)
 	$(CXX) $^ -o $@ $(LD_FLAGS)
