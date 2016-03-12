@@ -4,7 +4,6 @@
 #include <linux/kfd_sc.h>
 
 #include <amp.h>
-using namespace concurrency;
 
 enum {
 	WORKITEMS=64
@@ -85,7 +84,8 @@ int main(void)
 
 	/* show that we care outside of kernel to prevent DCE */
 	int ret;
-	parallel_for_each(extent<1>(1), [&](index<1> idx) restrict(amp)
+	parallel_for_each(concurrency::extent<1>(1),
+	                  [&](concurrency::index<1> idx) restrict(amp)
 	{
 		ret = local.send_nonblock(0, {1});
 	});
