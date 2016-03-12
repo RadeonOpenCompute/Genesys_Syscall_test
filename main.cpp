@@ -19,15 +19,15 @@ public:
 		static syscalls instance;
 		return instance;
 	}
-	int send(int idx, int sc,
+	int send(int sc,
 		uint64_t param0 = 0, uint64_t param1 = 0, uint64_t param2 = 0,
 		uint64_t param3 = 0, uint64_t param4 = 0, uint64_t param5 = 0)
 	restrict(amp);
-	int send_nonblock(int idx, int sc,
+	int send_nonblock(int sc,
 		uint64_t param0 = 0, uint64_t param1 = 0, uint64_t param2 = 0,
 		uint64_t param3 = 0, uint64_t param4 = 0, uint64_t param5 = 0)
 	restrict (amp) {
-		return send(idx, sc | KFD_SC_NONBLOCK_FLAG, param0, param1, param2,
+		return send(sc | KFD_SC_NONBLOCK_FLAG, param0, param1, param2,
 		     param3, param4, param5);
 	}
 };
@@ -50,13 +50,15 @@ int syscalls::init(size_t elements)
 
 void sendmsg_wrapper__(void)restrict(amp);
 
-int syscalls::send(int idx, int sc,
+int syscalls::send(int sc,
 	uint64_t param0, uint64_t param1, uint64_t param2,
 	uint64_t param3, uint64_t param4, uint64_t param5)
 restrict(amp)
 {
-	if (syscalls_ == NULL)
+	if (syscalls_ == NULL || elements_ == 0)
 		return EINVAL;
+	int idx = amp_get_global_id(0) % elements_;
+
 	//this should be atomic swap
 	if (syscalls_[idx].status != KFD_SC_STATUS_FREE)
 		return EAGAIN;
@@ -81,7 +83,7 @@ int main(void)
 	int ret;
 	parallel_for_each(extent<1>(1), [&](index<1> idx) restrict(amp)
 	{
-		ret = local.send_nonblock(0,0);
+		ret = local.send_nonblock(0);
 	});
 	hsaKmtCloseKFD();
 	// Check
