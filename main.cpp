@@ -3,6 +3,8 @@
 #include <iostream>
 #include <string>
 
+#include <unistd.h>
+
 #include "amp_syscalls.h"
 
 enum {
@@ -31,7 +33,8 @@ int main(void)
 	{
 		ret = local.send_nonblock(__NR_write, {1, text, length});
 	});
-	::std::cout << "Press any key to continue...\n";
+	pid_t p = getpid();
+	::std::cout << "My pid is " << p << " Press any key to continue...\n";
 	::std::cin.get();
 
 	return 0;
