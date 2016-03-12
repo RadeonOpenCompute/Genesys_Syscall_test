@@ -1,5 +1,7 @@
 PROJECT=sctest
-FILES=main.cpp
+FILES= \
+	amp_syscalls.cpp \
+	main.cpp
 
 OBJS=$(FILES:.cpp=.o)
 
