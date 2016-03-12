@@ -48,7 +48,7 @@ int syscalls::init(size_t elements)
 	return 0;
 }
 
-extern "C" void __hsa_sendmsg(void)restrict(amp);
+extern "C" void __hsa_sendmsg(uint32_t msg)restrict(amp);
 //extern "C" void __hsa_sendmsghalt(void)restrict(amp);
 //Halt version is not ready yet
 extern "C" void __hsail_barrier(void)restrict(amp);
@@ -69,7 +69,7 @@ restrict(amp)
 	//TODO params
 //	if (idx % 64 == 0)
 		__hsail_barrier();
-		__hsa_sendmsg();
+		__hsa_sendmsg(0);
 	return 0;
 }
 
