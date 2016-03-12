@@ -1,3 +1,4 @@
+#include <array>
 #include <iostream>
 #include <hsakmt.h>
 #include <linux/kfd_sc.h>
@@ -9,26 +10,25 @@ enum {
 	WORKITEMS=64
 };
 
+#define ARG_COUNT (sizeof(kfd_sc::arg) / sizeof(kfd_sc::arg[0]))
+
 class syscalls {
-public:
+	using arg_array = ::std::array<uint64_t, ARG_COUNT>;
+
 	kfd_sc *syscalls_ = NULL;
 	size_t elements_ = 0;
+public:
 	int init(size_t elements);
 	static syscalls& get() restrict (amp,cpu)
 	{
 		static syscalls instance;
 		return instance;
 	}
-	int send(int sc,
-		uint64_t param0 = 0, uint64_t param1 = 0, uint64_t param2 = 0,
-		uint64_t param3 = 0, uint64_t param4 = 0, uint64_t param5 = 0)
+	int send(int sc, arg_array args = {})
 	restrict(amp);
-	int send_nonblock(int sc,
-		uint64_t param0 = 0, uint64_t param1 = 0, uint64_t param2 = 0,
-		uint64_t param3 = 0, uint64_t param4 = 0, uint64_t param5 = 0)
+	int send_nonblock(int sc, arg_array args = {})
 	restrict (amp) {
-		return send(sc | KFD_SC_NONBLOCK_FLAG, param0, param1, param2,
-		     param3, param4, param5);
+		return send(sc | KFD_SC_NONBLOCK_FLAG, args);
 	}
 };
 
@@ -53,9 +53,7 @@ extern "C" void __hsa_sendmsg(uint32_t msg)restrict(amp);
 //Halt version is not ready yet
 extern "C" void __hsail_barrier(void)restrict(amp);
 
-int syscalls::send(int sc,
-	uint64_t param0, uint64_t param1, uint64_t param2,
-	uint64_t param3, uint64_t param4, uint64_t param5)
+int syscalls::send(int sc, arg_array args)
 restrict(amp)
 {
 	if (syscalls_ == NULL || elements_ == 0)
@@ -64,12 +62,16 @@ restrict(amp)
 	//this should be atomic swap
 	if (syscalls_[idx].status != KFD_SC_STATUS_FREE)
 		return EAGAIN;
-	syscalls_[idx].sc_num = sc;
-	syscalls_[idx].status = KFD_SC_STATUS_READY;
-	//TODO params
-//	if (idx % 64 == 0)
-		__hsail_barrier();
-		__hsa_sendmsg(0);
+	kfd_sc &slot = syscalls_[idx];
+	slot.sc_num = sc;
+	slot.status = KFD_SC_STATUS_READY;
+	// std::copy should work here if it were implemented for AMP
+	for (int i = 0; i < args.size(); ++i)
+		slot.arg[i] = args[i];
+
+	// These are scalar, so they get executed only once per wave.
+	__hsail_barrier();
+	__hsa_sendmsg(0);
 	return 0;
 }
 
@@ -85,7 +87,7 @@ int main(void)
 	int ret;
 	parallel_for_each(extent<1>(1), [&](index<1> idx) restrict(amp)
 	{
-		ret = local.send_nonblock(0);
+		ret = local.send_nonblock(0, {1});
 	});
 	hsaKmtCloseKFD();
 	// Check
