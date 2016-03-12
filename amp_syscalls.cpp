@@ -4,6 +4,12 @@
 
 #include "amp_syscalls.h"
 
+
+syscalls& syscalls::get() restrict (amp,cpu)
+{
+	static syscalls instance;
+	return instance;
+}
 int syscalls::init(size_t elements)
 {
 	void *sc_area = NULL;
