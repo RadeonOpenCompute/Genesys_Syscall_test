@@ -1,5 +1,7 @@
-
 #include <amp.h>
+#include <asm/unistd.h>
+#include <iostream>
+#include <string>
 
 #include "amp_syscalls.h"
 
@@ -14,16 +16,23 @@ int main(void)
 	/* for some reason we need a reference,
 	 * function scope globals are probably broken */
 	syscalls &local = syscalls::get();
+	::std::string hello = "Hello world from GPU!\n";
+	const uint64_t text = (uint64_t)hello.c_str();
+	const size_t length = hello.size();
+
+	::std::cout << "Testing write syscall, the args should be: "
+	            << __NR_write << ", " << (void*)text << ", " << length
+	            << ::std::endl;
 
 	/* show that we care outside of kernel to prevent DCE */
 	int ret;
 	parallel_for_each(concurrency::extent<1>(1),
 	                  [&](concurrency::index<1> idx) restrict(amp)
 	{
-		ret = local.send_nonblock(0, {1});
+		ret = local.send_nonblock(__NR_write, {1, text, length});
 	});
-	// Check
-//	for (int i = 0; i < WORKITEMS
+	::std::cout << "Press any key to continue...\n";
+	::std::cin.get();
 
 	return 0;
 }
