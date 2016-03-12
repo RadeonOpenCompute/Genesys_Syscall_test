@@ -48,7 +48,10 @@ int syscalls::init(size_t elements)
 	return 0;
 }
 
-void sendmsg_wrapper__(void)restrict(amp);
+extern "C" void __hsa_sendmsg(void)restrict(amp);
+//extern "C" void __hsa_sendmsghalt(void)restrict(amp);
+//Halt version is not ready yet
+extern "C" void __hsail_barrier(void)restrict(amp);
 
 int syscalls::send(int sc,
 	uint64_t param0, uint64_t param1, uint64_t param2,
@@ -58,7 +61,6 @@ restrict(amp)
 	if (syscalls_ == NULL || elements_ == 0)
 		return EINVAL;
 	int idx = amp_get_global_id(0) % elements_;
-
 	//this should be atomic swap
 	if (syscalls_[idx].status != KFD_SC_STATUS_FREE)
 		return EAGAIN;
@@ -66,8 +68,8 @@ restrict(amp)
 	syscalls_[idx].status = KFD_SC_STATUS_READY;
 	//TODO params
 //	if (idx % 64 == 0)
-// TODO this need to be implemented in hcc
-//		sendmsg_wrapper__();
+		__hsail_barrier();
+		__hsa_sendmsg();
 	return 0;
 }
 
