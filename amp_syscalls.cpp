@@ -31,8 +31,11 @@ extern "C" void __hsa_sendmsg(uint32_t msg)restrict(amp);
 //Halt version is not ready yet
 extern "C" void __hsail_barrier(void)restrict(amp);
 
-int syscalls::send(int sc, arg_array args)
-restrict(amp)
+int syscalls::wait_get_ret() restrict(amp)
+{
+	return ENOTSUP;
+}
+int syscalls::send_common(int sc, arg_array args) restrict(amp)
 {
 	if (syscalls_ == NULL || elements_ == 0)
 		return EINVAL;

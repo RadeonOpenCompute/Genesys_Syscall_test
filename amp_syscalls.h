@@ -11,17 +11,26 @@ class syscalls {
 
 	kfd_sc *syscalls_ = NULL;
 	size_t elements_ = 0;
+
 	syscalls(const syscalls&) = delete;
 	syscalls() {};
 	~syscalls();
+
+	int send_common(int sc, arg_array args) restrict(amp);
 public:
 	int init(size_t elements);
 	static syscalls& get() restrict (amp,cpu);
-	int send(int sc, arg_array args = {})
-	restrict(amp);
-	int send_nonblock(int sc, arg_array args = {})
-	restrict (amp) {
-		return send(sc | KFD_SC_NONBLOCK_FLAG, args);
+	int wait_get_ret() restrict(amp);
+	int send(int sc, arg_array args = {}) restrict (amp)
+	{
+		int ret = send_common(sc, args);
+		if (!ret)
+			ret = wait_get_ret();
+		return ret;
+	}
+	int send_nonblock(int sc, arg_array args = {}) restrict (amp)
+	{
+		return send_common(sc | KFD_SC_NONBLOCK_FLAG, args);
 	}
 };
 #endif
