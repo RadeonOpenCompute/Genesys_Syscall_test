@@ -8,6 +8,7 @@
 
 class syscalls {
 	using arg_array = ::std::array<uint64_t, ARG_COUNT>;
+	using status_t  = ::std::atomic_uint;
 
 	kfd_sc *syscalls_ = NULL;
 	size_t elements_ = 0;
@@ -16,6 +17,8 @@ class syscalls {
 	syscalls() {};
 	~syscalls();
 
+	kfd_sc &get_slot() restrict(amp);
+	status_t &get_atomic_status(kfd_sc &slot) restrict (amp,cpu);
 	int send_common(int sc, arg_array args) restrict(amp);
 public:
 	int init(size_t elements);
