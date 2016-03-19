@@ -1,9 +1,10 @@
 PROJECT=sctest
-FILES= \
+SRCS= \
 	amp_syscalls.cpp \
 	main.cpp
 
-OBJS=$(FILES:.cpp=.o)
+OBJS=$(SRCS:.cpp=.o)
+DEPS=$(SRCS:.cpp=.d)
 
 KMT_CPPFLAGS=-I /opt/hsakmt/include
 KMT_LDFLAGS=-L/opt/hsakmt/lib/ -lhsakmt
@@ -11,7 +12,8 @@ KMT_LDFLAGS=-L/opt/hsakmt/lib/ -lhsakmt
 HCC_CONFIG=/opt/hcc-amdgpu/bin/hcc-config
 CXX=/opt/hcc-amdgpu/bin/clang++
 
-HCC_CPPFLAGS=$(shell $(HCC_CONFIG) --cppflags --install)
+#hcc-config mixes compiler and preprocessor flags
+HCC_CPPFLAGS=$(shell $(HCC_CONFIG) --cxxflags --install)
 HCC_CXXFLAGS=$(shell $(HCC_CONFIG) --cxxflags --install)
 HCC_LDFLAGS=$(shell $(HCC_CONFIG) --ldflags --install)
 
@@ -25,5 +27,10 @@ $(PROJECT): $(OBJS)
 %.o: %.cpp
 	$(CXX) -c $< $(CPP_FLAGS) $(CXX_FLAGS) -o $@
 
+%.d: %.cpp
+	$(CXX) -MMD -MF $@ $(CPP_FLAGS) $< -E > /dev/null
+
+-include $(DEPS)
+
 clean:
-	rm -vf $(OBJS)
+	rm -vf $(OBJS) $(PROJECT) $(DEPS)
