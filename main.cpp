@@ -31,15 +31,19 @@ int main(int argc, char **argv)
 		            << s.size() << ::std::endl;
 	}
 
+	::std::vector<int> ret(parallel);
 	parallel_for_each(concurrency::extent<1>(parallel),
 	                  [&](concurrency::index<1> idx) restrict(amp)
 	{
 		int i = idx[0];
 		const ::std::string &s = hello[i % ARRAY_SIZE(hello)];
-		local.send_nonblock(__NR_write, {fds[i % ARRAY_SIZE(fds)],
-		                          (uint64_t)s.c_str(), s.size()});
+		ret[i] = local.send_nonblock(__NR_write,
+		                             {fds[i % ARRAY_SIZE(fds)],
+		                              (uint64_t)s.c_str(), s.size()});
 	});
 	pid_t p = getpid();
+	for (size_t i = 0; i < ret.size(); ++i)
+		::std::cout << "Ret (" << i << "): " << ret[i] << "\n";
 	::std::cout << "My pid is " << p << " Press any key to continue...\n";
 	::std::cin.get();
 
