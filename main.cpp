@@ -37,7 +37,7 @@ int main(int argc, char **argv)
 	{
 		int i = idx[0];
 		const ::std::string &s = hello[i % ARRAY_SIZE(hello)];
-		ret[i] = local.send_nonblock(__NR_write,
+		ret[i] = local.send(__NR_write,
 		                             {fds[i % ARRAY_SIZE(fds)],
 		                              (uint64_t)s.c_str(), s.size()});
 	});
