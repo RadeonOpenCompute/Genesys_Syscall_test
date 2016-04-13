@@ -70,7 +70,7 @@ int syscalls::send_common(int sc, arg_array args) restrict(amp)
 	for (int i = 0; i < args.size(); ++i)
 		slot.arg[i] = args[i];
 
-	// This is probably unnecessary, atomic status op should work as barrier
+	// This is necessary, atomic status op does not work as barrier
 	__hsail_barrier();
 	status = KFD_SC_STATUS_READY;
 	// These are scalar, so they get executed only once per wave.
