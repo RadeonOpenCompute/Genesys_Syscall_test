@@ -10,20 +10,21 @@ syscalls& syscalls::get() restrict (amp,cpu)
 	static syscalls instance;
 	return instance;
 }
-int syscalls::init(size_t elements)
+
+syscalls::syscalls()
 {
+	//TODO: use device configuration, or move to libhsakmt
+	size_t elements = 320*64;
 	void *sc_area = NULL;
 	hsaKmtOpenKFD();
 	HSAKMT_STATUS s = hsaKmtGetSyscallArea(elements, &sc_area);
 	::std::cout << "Requested syscall area: " << s << " address: "
 	            << sc_area << ::std::endl;
 
-	if (!sc_area)
-		return -1;
-
-	syscalls_ = static_cast<kfd_sc*>(sc_area);
-	elements_ = elements;
-	return 0;
+	if (sc_area) {
+		syscalls_ = static_cast<kfd_sc*>(sc_area);
+		elements_ = elements;
+	}
 }
 
 extern "C" void __hsa_sendmsg(uint32_t msg)restrict(amp);

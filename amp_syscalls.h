@@ -14,14 +14,13 @@ class syscalls {
 	size_t elements_ = 0;
 
 	syscalls(const syscalls&) = delete;
-	syscalls() {};
+	syscalls();
 	~syscalls();
 
 	kfd_sc &get_slot() restrict(amp);
 	status_t &get_atomic_status(kfd_sc &slot) restrict (amp,cpu);
 	int send_common(int sc, arg_array args) restrict(amp);
 public:
-	int init(size_t elements);
 	static syscalls& get() restrict (amp,cpu);
 	int wait_get_ret() restrict(amp);
 	int send(int sc, arg_array args = {}) restrict (amp)

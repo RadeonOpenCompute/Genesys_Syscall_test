@@ -22,8 +22,6 @@ int main(int argc, char **argv)
 	if (argc > 1)
 		parallel = ::std::stoi(argv[1]);
 
-	//TODO: use device configuration, or move to libhsakmt
-	syscalls::get().init(320 * 64);
 	for (int i = 0; i < parallel; ++i) {
 		const ::std::string &s = hello[i % ARRAY_SIZE(hello)];
 		::std::cout << "Testing write syscall, the args should be: "
