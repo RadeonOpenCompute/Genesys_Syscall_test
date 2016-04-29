@@ -31,10 +31,17 @@ extern "C" void __hsa_sendmsg(uint32_t msg)restrict(amp);
 //Halt version is not ready yet
 extern "C" void __hsail_barrier(void)restrict(amp);
 
+extern "C" uint32_t __hsa_gethwid(void)restrict(amp);
+
+static unsigned get_slot_page() restrict(amp)
+{
+	uint32_t id = __hsa_gethwid();
+	return (((id >> 4) & 0x3) | ((id >> 6) & 0x1fc)) * 10 + (id & 0xf);
+}
 kfd_sc &syscalls::get_slot() restrict(amp)
 {
-	int idx = amp_get_global_id(0) % elements_;
-	return syscalls_[idx];
+	int idx = (get_slot_page() * 64) + (amp_get_global_id(0) % 64);
+	return syscalls_[idx % elements_];
 }
 
 syscalls::status_t &syscalls::get_atomic_status(kfd_sc &slot) restrict (amp,cpu)
