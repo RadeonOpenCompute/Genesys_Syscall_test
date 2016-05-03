@@ -32,7 +32,7 @@ public:
 	}
 	int send_nonblock(int sc, arg_array args = {}) restrict (amp)
 	{
-		return send_common(sc | KFD_SC_NONBLOCK_FLAG, args);
+		return send_common(sc | KFD_SC_NORET_FLAG, args);
 	}
 };
 #endif
