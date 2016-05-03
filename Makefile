@@ -1,5 +1,6 @@
 MAIN_SRCS= \
-	hello.cpp
+	hello.cpp \
+	hello-cpu.cpp
 
 AUX_SRCS= \
 	amp_syscalls.cpp
