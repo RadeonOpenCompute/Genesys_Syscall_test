@@ -1,4 +1,5 @@
 MAIN_SRCS= \
+	bench-nop.cpp \
 	hello.cpp \
 	hello-cpu.cpp
 
