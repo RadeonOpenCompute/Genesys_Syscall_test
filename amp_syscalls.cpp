@@ -18,9 +18,6 @@ syscalls::syscalls()
 	void *sc_area = NULL;
 	hsaKmtOpenKFD();
 	HSAKMT_STATUS s = hsaKmtGetSyscallArea(elements, &sc_area);
-	::std::cout << "Requested syscall area: " << s << " address: "
-	            << sc_area << ::std::endl;
-
 	if (sc_area) {
 		syscalls_ = static_cast<kfd_sc*>(sc_area);
 		elements_ = elements;
