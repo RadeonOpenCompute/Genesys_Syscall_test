@@ -1,8 +1,13 @@
-PROJECT=sctest
-SRCS= \
-	amp_syscalls.cpp \
+MAIN_SRCS= \
 	hello.cpp
 
+AUX_SRCS= \
+	amp_syscalls.cpp
+
+BINS=$(addprefix test-, $(subst .cpp,,$(MAIN_SRCS)))
+
+SRCS=$(MAIN_SRCS) $(AUX_SRCS)
+AUX_OBJS=$(AUX_SRCS:.cpp=.o)
 OBJS=$(SRCS:.cpp=.o)
 DEPS=$(SRCS:.cpp=.d)
 
@@ -21,7 +26,9 @@ CPP_FLAGS=$(KMT_CPPFLAGS) $(HCC_CPPFLAGS)
 CXX_FLAGS=$(HCC_CXXFLAGS)
 LD_FLAGS=$(KMT_LDFLAGS) $(HCC_LDFLAGS)
 
-$(PROJECT): $(OBJS)
+all: $(BINS)
+
+test-% : %.o $(AUX_OBJS)
 	$(CXX) $^ -o $@ $(LD_FLAGS)
 
 %.o: %.cpp
@@ -33,4 +40,4 @@ $(PROJECT): $(OBJS)
 -include $(DEPS)
 
 clean:
-	rm -vf $(OBJS) $(PROJECT) $(DEPS)
+	rm -vf $(OBJS) $(BINS) $(DEPS)
