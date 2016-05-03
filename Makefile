@@ -1,7 +1,7 @@
 PROJECT=sctest
 SRCS= \
 	amp_syscalls.cpp \
-	main.cpp
+	hello.cpp
 
 OBJS=$(SRCS:.cpp=.o)
 DEPS=$(SRCS:.cpp=.d)
