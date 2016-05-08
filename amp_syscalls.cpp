@@ -13,15 +13,21 @@ syscalls& syscalls::get() restrict (amp,cpu)
 
 syscalls::syscalls()
 {
-	//TODO: use device configuration, or move to libhsakmt
-	size_t elements = 320*64;
 	void *sc_area = NULL;
+	HSAuint32 elements = 0;
 	hsaKmtOpenKFD();
-	HSAKMT_STATUS s = hsaKmtGetSyscallArea(elements, &sc_area);
+	HSAKMT_STATUS s = hsaKmtGetSyscallArea(&elements, &sc_area);
 	if (sc_area) {
 		syscalls_ = static_cast<kfd_sc*>(sc_area);
 		elements_ = elements;
 	}
+}
+
+syscalls::~syscalls()
+{
+	if (syscalls_)
+		hsaKmtFreeSyscallArea();
+	hsaKmtCloseKFD();
 }
 
 extern "C" void __hsa_sendmsg(uint32_t msg)restrict(amp);
@@ -81,9 +87,4 @@ int syscalls::send_common(int sc, arg_array args) restrict(amp)
 	// These are scalar, so they get executed only once per wave.
 	__hsa_sendmsg(0);
 	return 0;
-}
-
-syscalls::~syscalls()
-{
-	hsaKmtCloseKFD();
 }
