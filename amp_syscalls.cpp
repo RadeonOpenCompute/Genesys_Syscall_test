@@ -33,7 +33,7 @@ syscalls::~syscalls()
 extern "C" void __hsa_sendmsg(uint32_t msg)restrict(amp);
 //extern "C" void __hsa_sendmsghalt(void)restrict(amp);
 //Halt version is not ready yet
-extern "C" void __hsail_barrier(void)restrict(amp);
+extern "C" void __hsa_fence(void)restrict(amp);
 
 extern "C" uint32_t __hsail_get_lane_id(void)restrict(amp);
 extern "C" uint32_t __hsa_gethwid(void)restrict(amp);
@@ -81,7 +81,7 @@ int syscalls::send_common(int sc, arg_array args) restrict(amp)
 		slot.arg[i] = args[i];
 
 	// This is necessary, atomic status op does not work as barrier
-	__hsail_barrier();
+	__hsa_fence();
 	status = KFD_SC_STATUS_READY;
 	// These are scalar, so they get executed only once per wave.
 	__hsa_sendmsg(0);
