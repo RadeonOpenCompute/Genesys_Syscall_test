@@ -63,6 +63,15 @@ int syscalls::wait_get_ret() restrict(amp)
 	status = KFD_SC_STATUS_FREE;
 	return ret;
 }
+void syscalls::wait_all() restrict(cpu)
+{
+	for (unsigned i = 0; i < elements_; ++i) {
+		status_t &status = get_atomic_status(syscalls_[i]);
+		while (status != KFD_SC_STATUS_FINISHED &&
+		       status != KFD_SC_STATUS_FREE)
+			::std::this_thread::yield();
+	} 
+}
 
 int syscalls::send_common(int sc, arg_array args) restrict(amp)
 {
