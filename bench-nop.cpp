@@ -40,6 +40,8 @@ int main(int argc, char **argv)
 			ret[i] = local.send(0);
 		}
 	});
+	if (nonblock)
+		local.wait_all();
 	auto end = ::std::chrono::high_resolution_clock::now();
 	auto us = ::std::chrono::duration_cast<::std::chrono::microseconds>(end - start);
 	::std::cerr << parallel << ": " << us.count() << std::endl;
