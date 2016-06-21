@@ -24,6 +24,7 @@ public:
 	static syscalls& get() restrict (amp,cpu);
 	int wait_get_ret() restrict(amp);
 	void wait_all() restrict(cpu);
+	void wait_all() restrict(amp);
 	int send(int sc, arg_array args = {}) restrict (amp)
 	{
 		int ret = send_common(sc, args);

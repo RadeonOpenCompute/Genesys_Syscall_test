@@ -34,6 +34,7 @@ extern "C" void __hsa_sendmsg(uint32_t msg)restrict(amp);
 //extern "C" void __hsa_sendmsghalt(void)restrict(amp);
 //Halt version is not ready yet
 extern "C" void __hsa_fence(void)restrict(amp);
+extern "C" void __hsail_barrier(void)restrict(amp);
 
 extern "C" uint32_t __hsail_get_lane_id(void)restrict(amp);
 extern "C" uint32_t __hsa_gethwid(void)restrict(amp);
@@ -63,6 +64,17 @@ int syscalls::wait_get_ret() restrict(amp)
 	status = KFD_SC_STATUS_FREE;
 	return ret;
 }
+
+void syscalls::wait_all() restrict(amp)
+{
+	kfd_sc &slot = get_slot();
+	status_t &status = get_atomic_status(slot);
+	while (status != KFD_SC_STATUS_FINISHED &&
+	       status != KFD_SC_STATUS_FREE);
+	//TODO we can probably use s_sleep here
+	__hsail_barrier();
+}
+
 void syscalls::wait_all() restrict(cpu)
 {
 	for (unsigned i = 0; i < elements_; ++i) {
