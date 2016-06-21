@@ -92,6 +92,8 @@ int syscalls::send_common(int sc, arg_array args) restrict(amp)
 	// This is necessary, atomic status op does not work as barrier
 	__hsa_fence();
 	status = KFD_SC_STATUS_READY;
+	// Make sure the status update is visible before issuing interrupt
+	__hsa_fence();
 	// These are scalar, so they get executed only once per wave.
 	__hsa_sendmsg(0);
 	return 0;
