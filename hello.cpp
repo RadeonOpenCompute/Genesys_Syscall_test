@@ -107,6 +107,11 @@ static int run_cpu(const test_params &p, ::std::ostream &O,
 	O << us.count() << std::endl;
 	if (fd != 1)
 		close(fd);
+	for (size_t i = 0; i < ret.size(); ++i) {
+		if (ret[i] != str.size())
+			::std::cerr << "FAIL at " << i << " ("
+			            << ret[i] << ")" << ::std::endl;
+	}
 
 	return 0;
 };
