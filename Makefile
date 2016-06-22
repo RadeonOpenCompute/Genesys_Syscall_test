@@ -1,10 +1,10 @@
 MAIN_SRCS= \
 	bench-nop.cpp \
 	hello.cpp \
-	hello-cpu.cpp
 
 AUX_SRCS= \
-	amp_syscalls.cpp
+	amp_syscalls.cpp \
+	main.cpp
 
 BINS=$(addprefix test-, $(subst .cpp,,$(MAIN_SRCS)))
 

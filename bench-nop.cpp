@@ -6,45 +6,39 @@
 #include <asm/unistd.h>
 #include <unistd.h>
 
+#include "test.h"
 #include "amp_syscalls.h"
 
-int main(int argc, char **argv)
+static int run(const test_params &p, ::std::ostream &O,
+               syscalls &sc, int argc, char **argv)
 {
-
-	/* for some reason we need a reference,
-	 * function scope globals are probably broken */
-	syscalls &local = syscalls::get();
-
-	unsigned parallel = 1;
-	if (argc > 1)
-		parallel = ::std::stoi(argv[1]);
-
-	int nonblock = 0;
-	if (argc > 2)
-		nonblock = 1;
-	::std::cout << "Running: " << parallel << (nonblock ? " NON" : " ")
-	            << "BLOCK version\n";
-
-	::std::vector<int> ret(parallel);
+	if (p.cpu) {
+		::std::cerr << "Running NOP on CPU is not supported\n";
+	}
+	::std::vector<int> ret(p.parallel);
 
 	auto start = ::std::chrono::high_resolution_clock::now();
-	parallel_for_each(concurrency::extent<1>(parallel),
+	parallel_for_each(concurrency::extent<1>(p.parallel),
 	                  [&](concurrency::index<1> idx) restrict(amp)
 	{
 		int i = idx[0];
-		if (nonblock) {
-			do {
-				ret[i] = local.send_nonblock(0);
-			} while (ret[i] == EAGAIN);
-		} else {
-			ret[i] = local.send(0);
+		for (size_t j = 0; j < p.serial; ++j) {
+			if (p.gpu_sync_before)
+				sc.wait_all();
+			if (p.non_block) {
+				do {
+					ret[i] = sc.send_nonblock(0);
+				} while (ret[i] == EAGAIN);
+			} else {
+				ret[i] = sc.send(0);
+			}
 		}
 	});
-	if (nonblock)
-		local.wait_all();
+	if (p.non_block && !p.dont_wait_after)
+		sc.wait_all();
 	auto end = ::std::chrono::high_resolution_clock::now();
 	auto us = ::std::chrono::duration_cast<::std::chrono::microseconds>(end - start);
-	::std::cerr << parallel << ": " << us.count() << std::endl;
+	O << us.count() << std::endl;
 
 
 	for (size_t i = 0; i < ret.size(); ++i) {
@@ -55,3 +49,9 @@ int main(int argc, char **argv)
 
 	return 0;
 }
+
+struct test test_instance = {
+	.run_gpu = run,
+	.run_cpu = no_cpu,
+	.name = "NOP",
+};
