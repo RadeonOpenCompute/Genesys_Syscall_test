@@ -60,12 +60,16 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 			if (p.gpu_sync_before)
 				sc.wait_all();
 			if (p.non_block) {
-				do {
-					ret[i] = sc.send_nonblock(__NR_write,
-					         {local_fd, local_str_ptr,
-					          local_size});
-				} while (ret[i] == EAGAIN);
+				// This will be a short check if we waited
+				// above
+				sc.wait_one_free();
+				ret[i] = sc.send_nonblock(__NR_write,
+				         {local_fd, local_str_ptr,
+				          local_size});
 			} else {
+				// we don't need to wait here, since
+				// blockingoperation guarantees
+				// available slots
 				ret[i] = sc.send(__NR_write,
 				         {local_fd, local_str_ptr, local_size});
 			}
