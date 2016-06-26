@@ -75,6 +75,13 @@ void syscalls::wait_all() restrict(amp)
 	__hsail_barrier();
 }
 
+void syscalls::wait_one_free() restrict(amp)
+{
+	kfd_sc &slot = get_slot();
+	status_t &status = get_atomic_status(slot);
+	while (status != KFD_SC_STATUS_FREE);
+}
+
 void syscalls::wait_all() restrict(cpu)
 {
 	for (unsigned i = 0; i < elements_; ++i) {
