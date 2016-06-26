@@ -13,6 +13,13 @@
 static int fd = 1;
 static ::std::string str = "Hello World from the GPU!\n";
 
+static void help(int argc, char *argv[])
+{
+	::std::cerr << "\t--out\twrite output to file\n";
+	::std::cerr << "\t--str\tuse given string instead of the default\n";
+	::std::cerr << "\t--strn\tuse given string with appended newline\n";
+}
+
 static bool parse(const ::std::string &opt, const ::std::string &arg)
 {
 	if (opt == "--out") {
@@ -120,5 +127,6 @@ struct test test_instance = {
 	.run_gpu = run_gpu,
 	.run_cpu = run_cpu,
 	.parse_option = parse,
+	.help = help,
 	.name = "Hello World",
 };
