@@ -101,12 +101,17 @@ int syscalls::send_common(int sc, arg_array args) restrict(amp)
 	for (int i = 0; i < args.size(); ++i)
 		slot.arg[i] = args[i];
 
-	// This is necessary, atomic status op does not work as barrier
+	// This fence might be unnecessary, MUBUF intructions complete
+	// in-order. However, FLAT instructions do not. It might be the
+	// case that the ordering is maintained in this case. However,
+	// the specs explicitly say:
+	// "the only sensible S_WAITCNT value to use after FLAT instructions
+	// is zero" (CI ISA p. 85)
 	__hsa_fence();
 	status = KFD_SC_STATUS_READY;
 	// Make sure the status update is visible before issuing interrupt
-	__hsa_fence();
 	// These are scalar, so they get executed only once per wave.
+	__hsa_fence();
 	__hsa_sendmsg(0);
 	return 0;
 }
