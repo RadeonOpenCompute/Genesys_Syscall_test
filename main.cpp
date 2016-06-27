@@ -5,9 +5,10 @@
 static const struct option options[] = {
 	{"parallel", required_argument, NULL, 'p'},
 	{"serial", required_argument, NULL, 's'},
-	{"nonblock", no_argument, NULL, 'b'},
-	{"dont-wait-after", no_argument, NULL, 'w'},
+	{"nonblock", no_argument, NULL, 'n'},
+	{"dont-wait-after", no_argument, NULL, 'd'},
 	{"gpu-sync-before", no_argument, NULL, 'y'},
+	{"gpu-wait-before", no_argument, NULL, 'w'},
 	{"run-on-cpu", no_argument, NULL, 'c'},
 	{"help", no_argument, NULL, 'h'},
 	{"test-help", no_argument, NULL, 't'},
@@ -19,13 +20,14 @@ int main(int argc, char *argv[])
 	test_params params;
 	char c;
 	opterr = 0;
-	while ((c = getopt_long(argc, argv, "p:s:bwycht", options, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, "p:s:ndywcht", options, NULL)) != -1) {
 		switch (c) {
 		case 'p': params.parallel = ::std::atoi(optarg); break;
 		case 's': params.serial = ::std::atoi(optarg); break;
-		case 'b': params.non_block = true; break;
-		case 'w': params.dont_wait_after = true; break;
+		case 'n': params.non_block = true; break;
+		case 'd': params.dont_wait_after = true; break;
 		case 'y': params.gpu_sync_before = true; break;
+		case 'w': params.gpu_wait_before = true; break;
 		case 'c': params.cpu = true; break;
 		case 't':
 			if (test_instance.help)
@@ -48,9 +50,9 @@ int main(int argc, char *argv[])
 			return 0;
 		}
 	}
-	if (params.parallel == 0 || params.serial == 0) {
-		::std::cerr << "Invalid configuration. serial and parallel "
-		            << "cannot be both zero\n";
+	if (!params.isValid()) {
+		::std::cerr << "Invalid configuration: " << params
+		            << ::std::endl;
 		return 1;
 	}
 	::std::cout << "Running " << test_instance.name << " " << params

@@ -11,7 +11,13 @@ struct test_params {
 	bool non_block = false;
 	bool dont_wait_after = false;
 	bool gpu_sync_before = false;
+	bool gpu_wait_before = false;
 	bool cpu = false;
+
+	bool isValid() const
+	{
+		return (!gpu_sync_before ||  !gpu_wait_before) && parallel > 0;
+	}
 };
 
 static inline ::std::ostream & operator << (::std::ostream &O, const test_params &t) restrict(cpu)
@@ -21,6 +27,7 @@ static inline ::std::ostream & operator << (::std::ostream &O, const test_params
 	  << ", non_block: " << t.non_block
 	  << ", dont_wait_after: " << t.dont_wait_after
 	  << ", gpu_sync_before: " << t.gpu_sync_before
+	  << ", gpu_wait_before: " << t.gpu_wait_before
 	  << ", cpu: " << t.cpu
 	  << ")";
 	return O;
