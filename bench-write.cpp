@@ -51,30 +51,68 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 	uint64_t local_size = str.size();
 
 	::std::vector<int> ret(p.parallel);
-	auto start = ::std::chrono::high_resolution_clock::now();
-	parallel_for_each(concurrency::extent<1>(p.parallel),
-	                  [&](concurrency::index<1> idx) restrict(amp)
-	{
+
+	auto f = [&](concurrency::index<1> idx) restrict(amp) {
 		int i = idx[0];
 		for (size_t j = 0; j < p.serial; ++j) {
-			if (p.gpu_sync_before)
-				sc.wait_all();
-			if (p.non_block) {
-				// This will be a short check if we waited
-				// above
-				sc.wait_one_free();
-				ret[i] = sc.send_nonblock(__NR_write,
-				         {local_fd, local_str_ptr,
-				          local_size});
-			} else {
-				// we don't need to wait here, since
-				// blockingoperation guarantees
-				// available slots
-				ret[i] = sc.send(__NR_write,
+			// we don't need to wait here, since
+			// blockingoperation guarantees
+			// available slots
+			ret[i] = sc.send(__NR_write,
 				         {local_fd, local_str_ptr, local_size});
-			}
 		}
-	});
+	};
+	auto f_s = [&](concurrency::index<1> idx) restrict(amp) {
+		int i = idx[0];
+		for (size_t j = 0; j < p.serial; ++j) {
+			// we don't need to wait here, since
+			// blockingoperation guarantees
+			// available slots. but we can sync across WGs
+			sc.wait_all();
+			ret[i] = sc.send(__NR_write,
+				         {local_fd, local_str_ptr, local_size});
+		}
+	};
+	auto f_n = [&](concurrency::index<1> idx) restrict(amp) {
+		int i = idx[0];
+		for (size_t j = 0; j < p.serial; ++j) {
+			do {
+				ret[i] = sc.send_nonblock(__NR_write,
+				         {local_fd, local_str_ptr, local_size});
+			} while (ret[i] == EAGAIN);
+		}
+	};
+	auto f_w_n = [&](concurrency::index<1> idx) restrict(amp) {
+		int i = idx[0];
+		for (size_t j = 0; j < p.serial; ++j) {
+			sc.wait_one_free();
+			ret[i] = sc.send_nonblock(__NR_write,
+			         {local_fd, local_str_ptr, local_size});
+		}
+	};
+	auto f_s_n = [&](concurrency::index<1> idx) restrict(amp) {
+		int i = idx[0];
+		for (size_t j = 0; j < p.serial; ++j) {
+			sc.wait_all();
+			ret[i] = sc.send_nonblock(__NR_write,
+			         {local_fd, local_str_ptr, local_size});
+		}
+	};
+
+	auto start = ::std::chrono::high_resolution_clock::now();
+	if (!p.non_block) {
+		if (!p.gpu_sync_before)
+			parallel_for_each(concurrency::extent<1>(p.parallel), f);
+		else
+			parallel_for_each(concurrency::extent<1>(p.parallel), f_s);
+	} else {
+		if (p.gpu_sync_before)
+			parallel_for_each(concurrency::extent<1>(p.parallel), f_s);
+		else if (p.gpu_wait_before)
+			parallel_for_each(concurrency::extent<1>(p.parallel), f_w_n);
+		else
+			parallel_for_each(concurrency::extent<1>(p.parallel), f_n);
+	}
 	if (p.non_block && !p.dont_wait_after)
 		sc.wait_all();
 	auto end = ::std::chrono::high_resolution_clock::now();

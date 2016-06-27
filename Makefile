@@ -1,6 +1,6 @@
 MAIN_SRCS= \
 	bench-nop.cpp \
-	hello.cpp \
+	bench-write.cpp \
 
 AUX_SRCS= \
 	amp_syscalls.cpp \
