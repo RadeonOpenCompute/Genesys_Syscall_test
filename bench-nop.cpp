@@ -29,8 +29,9 @@ static int run(const test_params &p, ::std::ostream &O,
 		[&](concurrency::index<1> idx) restrict(amp) {
 			int i = idx[0];
 			for (size_t j = 0; j < p.serial; ++j) {
-				sc.wait_all();
+				sc.wg_barrier();
 				ret[i] = sc.send(0);
+				sc.wg_barrier();
 			}
 		};
 	auto f_n =
@@ -54,8 +55,12 @@ static int run(const test_params &p, ::std::ostream &O,
 		[&](concurrency::index<1> idx) restrict(amp) {
 			int i = idx[0];
 			for (size_t j = 0; j < p.serial; ++j) {
-				sc.wait_all();
+				// We need to wait here, since using barrier
+				// in divergent code is illegal
+				sc.wait_one_free();
+				sc.wg_barrier();
 				ret[i] = sc.send_nonblock(0);
+				sc.wg_barrier();
 			}
 		};
 	auto start = ::std::chrono::high_resolution_clock::now();
