@@ -39,6 +39,12 @@ static bool parse(const ::std::string &opt, const ::std::string &arg)
 		str = arg + '\n';
 		return true;
 	}
+	if (opt == "--size") {
+		size_t size = ::std::stoi(arg);
+		::std::cerr << "Setting data size to " << size << " bytes.\n";
+		str = ::std::string(size, 'x');
+		return true;
+	}
 	return false;
 }
 
