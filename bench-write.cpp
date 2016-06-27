@@ -130,6 +130,10 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 	if (fd != 1)
 		close(fd);
 
+	if (::std::any_of(ret.begin(), ret.end(), [&](int ret) {
+		return ret != str.size(); }))
+		::std::cerr << "Not all return values match\n";
+
 	return 0;
 };
 
@@ -165,12 +169,9 @@ static int run_cpu(const test_params &p, ::std::ostream &O,
 	O << us.count() << std::endl;
 	if (fd != 1)
 		close(fd);
-	for (size_t i = 0; i < ret.size(); ++i) {
-		if (ret[i] != str.size())
-			::std::cerr << "FAIL at " << i << " ("
-			            << ret[i] << ")" << ::std::endl;
-	}
-
+	if (::std::any_of(ret.begin(), ret.end(), [&](int ret) {
+		return ret != str.size(); }))
+		::std::cerr << "Not all return values match\n";
 	return 0;
 };
 
