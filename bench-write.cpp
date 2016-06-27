@@ -74,9 +74,10 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 			// we don't need to wait here, since
 			// blockingoperation guarantees
 			// available slots. but we can sync across WGs
-			sc.wait_all();
+			sc.wg_barrier();
 			ret[i] = sc.send(__NR_write,
 				         {local_fd, local_str_ptr, local_size});
+			sc.wg_barrier();
 		}
 	};
 	auto f_n = [&](concurrency::index<1> idx) restrict(amp) {
@@ -99,9 +100,11 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 	auto f_s_n = [&](concurrency::index<1> idx) restrict(amp) {
 		int i = idx[0];
 		for (size_t j = 0; j < p.serial; ++j) {
-			sc.wait_all();
+			sc.wait_one_free();
+			sc.wg_barrier();
 			ret[i] = sc.send_nonblock(__NR_write,
 			         {local_fd, local_str_ptr, local_size});
+			sc.wg_barrier();
 		}
 	};
 
