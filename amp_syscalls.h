@@ -26,6 +26,8 @@ public:
 	void wait_all() restrict(cpu);
 	void wait_all() restrict(amp);
 	void wait_one_free() restrict(amp);
+	// TODO: thre should be an AMP way to do this
+	static void wg_barrier(void) restrict(amp);
 	int send(int sc, arg_array args = {}) restrict (amp)
 	{
 		int ret = send_common(sc, args);

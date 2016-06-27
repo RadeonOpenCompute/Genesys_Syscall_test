@@ -39,6 +39,11 @@ extern "C" void __hsail_barrier(void)restrict(amp);
 extern "C" uint32_t __hsail_get_lane_id(void)restrict(amp);
 extern "C" uint32_t __hsa_gethwid(void)restrict(amp);
 
+void syscalls::wg_barrier(void) restrict(amp)
+{
+	__hsail_barrier();
+}
+
 kfd_sc &syscalls::get_slot() restrict(amp)
 {
 	uint32_t id = __hsa_gethwid();
