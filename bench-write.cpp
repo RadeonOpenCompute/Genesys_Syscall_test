@@ -131,7 +131,7 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 		close(fd);
 
 	if (::std::any_of(ret.begin(), ret.end(), [&](int ret) {
-		return ret != str.size(); }))
+		return p.non_block ? (ret != 0) : (ret != str.size()); }))
 		::std::cerr << "Not all return values match\n";
 
 	return 0;
