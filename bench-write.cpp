@@ -116,7 +116,7 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 			parallel_for_each(concurrency::extent<1>(p.parallel), f_s);
 	} else {
 		if (p.gpu_sync_before)
-			parallel_for_each(concurrency::extent<1>(p.parallel), f_s);
+			parallel_for_each(concurrency::extent<1>(p.parallel), f_s_n);
 		else if (p.gpu_wait_before)
 			parallel_for_each(concurrency::extent<1>(p.parallel), f_w_n);
 		else
