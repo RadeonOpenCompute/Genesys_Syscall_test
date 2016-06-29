@@ -63,7 +63,7 @@ static int run(const test_params &p, ::std::ostream &O,
 			}
 		};
 	auto start = ::std::chrono::high_resolution_clock::now();
-	test_run(p, sc, f, f_s, f_n, f_s_n, f_s_n);
+	test_run(p, sc, f, f_s, f_n, f_s_n, f_w_n);
 	auto end = ::std::chrono::high_resolution_clock::now();
 	auto us = ::std::chrono::duration_cast<::std::chrono::microseconds>(end - start);
 	O << us.count() << std::endl;
