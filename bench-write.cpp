@@ -13,8 +13,6 @@
 static int fd = 1;
 static ::std::string str = "Hello World from the GPU!\n";
 
-#define WG_SIZE 1024
-
 static void help(int argc, char *argv[])
 {
 	::std::cerr << "\t--out\twrite output to file\n";
@@ -111,21 +109,7 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 	};
 
 	auto start = ::std::chrono::high_resolution_clock::now();
-	if (!p.non_block) {
-		if (p.gpu_sync_before)
-			parallel_for_each(concurrency::tiled_extent<WG_SIZE>(concurrency::extent<1>(p.parallel)), f_s);
-		else
-			parallel_for_each(concurrency::extent<1>(p.parallel), f);
-	} else {
-		if (p.gpu_sync_before)
-			parallel_for_each(concurrency::tiled_extent<WG_SIZE>(concurrency::extent<1>(p.parallel)), f_s_n);
-		else if (p.gpu_wait_before)
-			parallel_for_each(concurrency::extent<1>(p.parallel), f_w_n);
-		else
-			parallel_for_each(concurrency::extent<1>(p.parallel), f_n);
-	}
-	if (p.non_block && !p.dont_wait_after)
-		sc.wait_all();
+	test_run(p, sc, f, f_s, f_n, f_s_n, f_w_n);
 	auto end = ::std::chrono::high_resolution_clock::now();
 	auto us = ::std::chrono::duration_cast<::std::chrono::microseconds>(end - start);
 	O << us.count() << std::endl;
