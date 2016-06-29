@@ -17,13 +17,13 @@ class syscalls {
 	syscalls();
 	~syscalls();
 
-	kfd_sc &get_slot() restrict(amp);
-	status_t &get_atomic_status(kfd_sc &slot) restrict (amp,cpu);
+	kfd_sc &get_slot() const restrict(amp);
+	static status_t &get_atomic_status(kfd_sc &slot) restrict (amp,cpu);
 	int send_common(int sc, arg_array args) restrict(amp);
 public:
 	static syscalls& get() restrict (amp,cpu);
 	int wait_get_ret() restrict(amp);
-	void wait_all() restrict(cpu);
+	void wait_all() const restrict(cpu);
 	void wait_one_free() restrict(amp);
 	int send(int sc, arg_array args = {}) restrict (amp)
 	{

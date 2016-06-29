@@ -39,7 +39,7 @@ extern "C" void __hsail_barrier(void)restrict(amp);
 extern "C" uint32_t __hsail_get_lane_id(void)restrict(amp);
 extern "C" uint32_t __hsa_gethwid(void)restrict(amp);
 
-kfd_sc &syscalls::get_slot() restrict(amp)
+kfd_sc &syscalls::get_slot() const restrict(amp)
 {
 	uint32_t id = __hsa_gethwid();
 	unsigned slot =
@@ -73,7 +73,7 @@ void syscalls::wait_one_free() restrict(amp)
 	//TODO we can probably use s_sleep here
 }
 
-void syscalls::wait_all() restrict(cpu)
+void syscalls::wait_all() const restrict(cpu)
 {
 	for (unsigned i = 0; i < elements_; ++i) {
 		status_t &status = get_atomic_status(syscalls_[i]);
