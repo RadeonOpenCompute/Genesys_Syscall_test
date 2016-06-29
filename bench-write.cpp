@@ -13,6 +13,8 @@
 static int fd = 1;
 static ::std::string str = "Hello World from the GPU!\n";
 
+#define WG_SIZE 1024
+
 static void help(int argc, char *argv[])
 {
 	::std::cerr << "\t--out\twrite output to file\n";
@@ -68,16 +70,16 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 				         {local_fd, local_str_ptr, local_size});
 		}
 	};
-	auto f_s = [&](concurrency::index<1> idx) restrict(amp) {
-		int i = idx[0];
+	auto f_s = [&](concurrency::tiled_index<WG_SIZE> tidx) restrict(amp) {
+		int i = tidx.global[0];
 		for (size_t j = 0; j < p.serial; ++j) {
 			// we don't need to wait here, since
 			// blockingoperation guarantees
 			// available slots. but we can sync across WGs
-			sc.wg_barrier();
+			tidx.barrier.wait();
 			ret[i] = sc.send(__NR_write,
 				         {local_fd, local_str_ptr, local_size});
-			sc.wg_barrier();
+			tidx.barrier.wait();
 		}
 	};
 	auto f_n = [&](concurrency::index<1> idx) restrict(amp) {
@@ -97,26 +99,26 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 			         {local_fd, local_str_ptr, local_size});
 		}
 	};
-	auto f_s_n = [&](concurrency::index<1> idx) restrict(amp) {
-		int i = idx[0];
+	auto f_s_n = [&](concurrency::tiled_index<WG_SIZE> tidx) restrict(amp) {
+		int i = tidx.global[0];
 		for (size_t j = 0; j < p.serial; ++j) {
 			sc.wait_one_free();
-			sc.wg_barrier();
+			tidx.barrier.wait();
 			ret[i] = sc.send_nonblock(__NR_write,
 			         {local_fd, local_str_ptr, local_size});
-			sc.wg_barrier();
+			tidx.barrier.wait();
 		}
 	};
 
 	auto start = ::std::chrono::high_resolution_clock::now();
 	if (!p.non_block) {
-		if (!p.gpu_sync_before)
-			parallel_for_each(concurrency::extent<1>(p.parallel), f);
+		if (p.gpu_sync_before)
+			parallel_for_each(concurrency::tiled_extent<WG_SIZE>(concurrency::extent<1>(p.parallel)), f_s);
 		else
-			parallel_for_each(concurrency::extent<1>(p.parallel), f_s);
+			parallel_for_each(concurrency::extent<1>(p.parallel), f);
 	} else {
 		if (p.gpu_sync_before)
-			parallel_for_each(concurrency::extent<1>(p.parallel), f_s_n);
+			parallel_for_each(concurrency::tiled_extent<WG_SIZE>(concurrency::extent<1>(p.parallel)), f_s_n);
 		else if (p.gpu_wait_before)
 			parallel_for_each(concurrency::extent<1>(p.parallel), f_w_n);
 		else
