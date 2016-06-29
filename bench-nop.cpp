@@ -9,8 +9,6 @@
 #include "test.h"
 #include "amp_syscalls.h"
 
-#define WG_SIZE 1024
-
 static int run(const test_params &p, ::std::ostream &O,
                syscalls &sc, int argc, char **argv)
 {
@@ -66,21 +64,7 @@ static int run(const test_params &p, ::std::ostream &O,
 			}
 		};
 	auto start = ::std::chrono::high_resolution_clock::now();
-	if (!p.non_block) {
-		if (p.gpu_sync_before)
-			parallel_for_each(concurrency::tiled_extent<WG_SIZE>(concurrency::extent<1>(p.parallel)), f_s);
-		else
-			parallel_for_each(concurrency::extent<1>(p.parallel), f);
-	} else {
-		if (p.gpu_sync_before)
-			parallel_for_each(concurrency::tiled_extent<WG_SIZE>(concurrency::extent<1>(p.parallel)), f_s_n);
-		else if (p.gpu_wait_before)
-			parallel_for_each(concurrency::extent<1>(p.parallel), f_w_n);
-		else
-			parallel_for_each(concurrency::extent<1>(p.parallel), f_n);
-	}
-	if (p.non_block && !p.dont_wait_after)
-		sc.wait_all();
+	test_run(p, sc, f, f_s, f_n, f_s_n, f_s_n);
 	auto end = ::std::chrono::high_resolution_clock::now();
 	auto us = ::std::chrono::duration_cast<::std::chrono::microseconds>(end - start);
 	O << us.count() << std::endl;
