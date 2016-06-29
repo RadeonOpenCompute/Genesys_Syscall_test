@@ -2,8 +2,12 @@
 #define TEST_H
 
 #include "amp_syscalls.h"
+
+#include <amp.h>
 #include <cstddef>
 #include <ostream>
+
+#define WG_SIZE 1024
 
 struct test_params {
 	size_t parallel = 1;
@@ -16,7 +20,8 @@ struct test_params {
 
 	bool isValid() const
 	{
-		return (!gpu_sync_before ||  !gpu_wait_before) && parallel > 0;
+		return (!gpu_sync_before ||  !gpu_wait_before) && parallel > 0
+			&& ((parallel % WG_SIZE == 0) || !gpu_sync_before);
 	}
 };
 
@@ -47,5 +52,26 @@ struct test {
 };
 
 extern struct test test_instance;
+
+template<class F, class FS, class FN, class FNS, class FNW>
+void test_run(const test_params &p, const syscalls &sc,
+              F& f, FS &fs, FN &fn, FNS &fns, FNW &fnw)
+{
+	if (!p.non_block) {
+		if (p.gpu_sync_before)
+			parallel_for_each(concurrency::tiled_extent<WG_SIZE>(concurrency::extent<1>(p.parallel)), fs);
+		else
+			parallel_for_each(concurrency::extent<1>(p.parallel), f);
+	} else {
+		if (p.gpu_sync_before)
+			parallel_for_each(concurrency::tiled_extent<WG_SIZE>(concurrency::extent<1>(p.parallel)), fns);
+		else if (p.gpu_wait_before)
+			parallel_for_each(concurrency::extent<1>(p.parallel), fnw);
+		else
+			parallel_for_each(concurrency::extent<1>(p.parallel), fn);
+	}
+	if (p.non_block && !p.dont_wait_after)
+		sc.wait_all();
+}
 
 #endif
