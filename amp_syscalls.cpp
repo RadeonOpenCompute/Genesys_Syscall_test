@@ -65,21 +65,12 @@ int syscalls::wait_get_ret() restrict(amp)
 	return ret;
 }
 
-void syscalls::wait_all() restrict(amp)
-{
-	kfd_sc &slot = get_slot();
-	status_t &status = get_atomic_status(slot);
-	while (status != KFD_SC_STATUS_FINISHED &&
-	       status != KFD_SC_STATUS_FREE);
-	//TODO we can probably use s_sleep here
-	__hsail_barrier();
-}
-
 void syscalls::wait_one_free() restrict(amp)
 {
 	kfd_sc &slot = get_slot();
 	status_t &status = get_atomic_status(slot);
 	while (status != KFD_SC_STATUS_FREE);
+	//TODO we can probably use s_sleep here
 }
 
 void syscalls::wait_all() restrict(cpu)
