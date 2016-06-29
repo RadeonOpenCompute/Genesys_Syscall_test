@@ -100,10 +100,11 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 	auto f_s_n = [&](concurrency::tiled_index<WG_SIZE> tidx) restrict(amp) {
 		int i = tidx.global[0];
 		for (size_t j = 0; j < p.serial; ++j) {
-			sc.wait_one_free();
 			tidx.barrier.wait();
-			ret[i] = sc.send_nonblock(__NR_write,
-			         {local_fd, local_str_ptr, local_size});
+			do {
+				ret[i] = sc.send_nonblock(__NR_write,
+				         {local_fd, local_str_ptr, local_size});
+			} while (ret[i] == EAGAIN);
 			tidx.barrier.wait();
 		}
 	};
