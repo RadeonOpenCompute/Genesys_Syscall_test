@@ -39,7 +39,7 @@ static int run(const test_params &p, ::std::ostream &O,
 			int i = idx[0];
 			for (size_t j = 0; j < p.serial; ++j) {
 				do {
-				ret[i] = sc.send_nonblock(0);
+					ret[i] = sc.send_nonblock(0);
 				} while (ret[i] == EAGAIN);
 			}
 		};
@@ -55,11 +55,10 @@ static int run(const test_params &p, ::std::ostream &O,
 		[&](concurrency::tiled_index<WG_SIZE> tidx) restrict(amp) {
 			int i = tidx.global[0];
 			for (size_t j = 0; j < p.serial; ++j) {
-				// We need to wait here, since using barrier
-				// in divergent code is illegal
-				sc.wait_one_free();
 				tidx.barrier.wait();
-				ret[i] = sc.send_nonblock(0);
+				do {
+					ret[i] = sc.send_nonblock(0);
+				} while (ret[i] == EAGAIN);
 				tidx.barrier.wait();
 			}
 		};
