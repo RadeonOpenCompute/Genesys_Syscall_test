@@ -34,7 +34,6 @@ extern "C" void __hsa_sendmsg(uint32_t msg)restrict(amp);
 //extern "C" void __hsa_sendmsghalt(void)restrict(amp);
 //Halt version is not ready yet
 extern "C" void __hsa_fence(void)restrict(amp);
-extern "C" void __hsail_barrier(void)restrict(amp);
 
 extern "C" uint32_t __hsail_get_lane_id(void)restrict(amp);
 extern "C" uint32_t __hsa_gethwid(void)restrict(amp);
