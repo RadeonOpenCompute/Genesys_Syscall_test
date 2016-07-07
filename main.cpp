@@ -37,7 +37,8 @@ int main(int argc, char *argv[])
 			return 0;
 		default:
 			if (test_instance.parse_option &&
-			    test_instance.parse_option(argv[optind - 1], argv[optind]))
+			    test_instance.parse_option(argv[optind - 1],
+			                               argv[optind] ? argv[optind] : ""))
 				break;
 			::std::cerr << "Unknown option: " << argv[optind -1]
 			            << ::std::endl;
