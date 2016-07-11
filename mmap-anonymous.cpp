@@ -132,9 +132,70 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 	return 0;
 };
 
+static int run_cpu(const test_params &p, ::std::ostream &O,
+                   int argc, char *argv[])
+{
+	// HCC Fails if we set this to void*
+	using T = uint64_t;
+
+	::std::vector<T> ret(p.parallel);
+
+	// HCC is very bad with globals
+	size_t lsize = size;
+
+	auto start = ::std::chrono::high_resolution_clock::now();
+	for (size_t i = 0; i < p.parallel; ++i) {
+		for (size_t j = 0; j < p.serial; ++j) {
+			int * ptr = (int*)mmap(0, lsize, PROT_READ | PROT_WRITE,
+				MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+			*ptr = MAGICK;
+			ret[i] = (T)ptr;
+		}
+	};
+	auto end = ::std::chrono::high_resolution_clock::now();
+	auto us = ::std::chrono::duration_cast<::std::chrono::microseconds>(end - start);
+	O << us.count() << std::endl;
+
+	if (print_maps) {
+		static char buffer [4096] = {0};
+		::std::ifstream maps("/proc/self/maps");
+		while (maps.good()) {
+			size_t count = maps.read(buffer, sizeof(buffer)).gcount();
+			::std::cout.write(buffer, count);
+		}
+		maps.close();
+	}
+
+	for (const T& r : ret)
+	if (::std::any_of(ret.begin(), ret.end(), [&](T ret) {
+		return (void*)ret == MAP_FAILED || (*(int*)ret != 0xdeadbeef); }))
+		::std::cerr << "Some memory allocations failed "
+			"or did not carry data\n";
+
+	for (auto p : ret) {
+		int *ptr = (int*)p;
+		if (ptr == MAP_FAILED) {
+			::std::cerr << "Failed memory allocations\n";
+			return 1;
+		}
+		if (*ptr != MAGICK) {
+			::std::cerr << "Failed data test\n";
+			return 1;
+		}
+		*ptr = 0xcafe; // This would crash.
+		int rc = munmap(ptr, size);
+		if (rc) {
+			::std::cerr << "Failed unmap\n";
+			return 1;
+		}
+	}
+	return 0;
+};
+
 
 struct test test_instance = {
 	.run_gpu = run_gpu,
+	.run_cpu = run_cpu,
 	.parse_option = parse,
 	.help = help,
 	.name = "mmap Anonymous",
