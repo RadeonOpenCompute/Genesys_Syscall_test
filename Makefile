@@ -23,7 +23,7 @@ HCC_CXXFLAGS=$(shell $(HCC_CONFIG) --cxxflags --install)
 HCC_LDFLAGS=$(shell $(HCC_CONFIG) --ldflags --install)
 
 CPP_FLAGS=$(HCC_CPPFLAGS)
-CXX_FLAGS=$(HCC_CXXFLAGS)
+CXX_FLAGS=$(HCC_CXXFLAGS) -g
 LD_FLAGS=$(HCC_LDFLAGS)
 
 all: $(BINS)
