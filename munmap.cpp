@@ -4,9 +4,9 @@
 #include <iostream>
 #include <string>
 
-#include <asm/unistd.h>
 #include <fcntl.h>
 #include <sys/mman.h>
+#include <sys/syscall.h>
 
 #include "test.h"
 
@@ -56,7 +56,7 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 			// blocking operation guarantees
 			// available slots
 			uint64_t ptr = ret[i];
-			ret[i] = sc.send(__NR_munmap, {ptr, lsize});
+			ret[i] = sc.send(SYS_munmap, {ptr, lsize});
 		}
 	};
 	auto f_s = [&](concurrency::tiled_index<WG_SIZE> tidx) restrict(amp) {
@@ -67,7 +67,7 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 			// available slots. but we can sync across WGs
 			tidx.barrier.wait();
 			uint64_t ptr = ret[i];
-			ret[i] = sc.send(__NR_munmap, {ptr, lsize});
+			ret[i] = sc.send(SYS_munmap, {ptr, lsize});
 			tidx.barrier.wait();
 		}
 	};

@@ -3,7 +3,7 @@
 #include <iostream>
 #include <string>
 
-#include <asm/unistd.h>
+#include <sys/syscall.h>
 #include <unistd.h>
 #include <fcntl.h>
 
@@ -64,7 +64,7 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 			// we don't need to wait here, since
 			// blockingoperation guarantees
 			// available slots
-			ret[i] = sc.send(__NR_write,
+			ret[i] = sc.send(SYS_write,
 				         {local_fd, local_str_ptr, local_size});
 		}
 	};
@@ -75,7 +75,7 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 			// blockingoperation guarantees
 			// available slots. but we can sync across WGs
 			tidx.barrier.wait();
-			ret[i] = sc.send(__NR_write,
+			ret[i] = sc.send(SYS_write,
 				         {local_fd, local_str_ptr, local_size});
 			tidx.barrier.wait();
 		}
@@ -84,7 +84,7 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 		int i = idx[0];
 		for (size_t j = 0; j < p.serial; ++j) {
 			do {
-				ret[i] = sc.send_nonblock(__NR_write,
+				ret[i] = sc.send_nonblock(SYS_write,
 				         {local_fd, local_str_ptr, local_size});
 			} while (ret[i] == EAGAIN);
 		}
@@ -93,7 +93,7 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 		int i = idx[0];
 		for (size_t j = 0; j < p.serial; ++j) {
 			sc.wait_one_free();
-			ret[i] = sc.send_nonblock(__NR_write,
+			ret[i] = sc.send_nonblock(SYS_write,
 			         {local_fd, local_str_ptr, local_size});
 		}
 	};
@@ -102,7 +102,7 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 		for (size_t j = 0; j < p.serial; ++j) {
 			tidx.barrier.wait();
 			do {
-				ret[i] = sc.send_nonblock(__NR_write,
+				ret[i] = sc.send_nonblock(SYS_write,
 				         {local_fd, local_str_ptr, local_size});
 			} while (ret[i] == EAGAIN);
 			tidx.barrier.wait();

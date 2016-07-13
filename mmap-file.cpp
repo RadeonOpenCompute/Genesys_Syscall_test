@@ -5,9 +5,9 @@
 #include <string>
 #include <cstdio>
 
-#include <asm/unistd.h>
 #include <fcntl.h>
 #include <sys/mman.h>
+#include <sys/syscall.h>
 
 #include <unistd.h>
 #include "test.h"
@@ -86,7 +86,7 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 			// available slots
 			__attribute__((address_space(1))) char * ptr
 				 = (__attribute__((address_space(1))) char *)
-					sc.send(__NR_mmap,
+					sc.send(SYS_mmap,
 					       {0, lsize, PROT_READ,
 					        MAP_PRIVATE, lfd, 0});
 			ret[i] = (T)ptr;
@@ -112,7 +112,7 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 			tidx.barrier.wait();
 			__attribute__((address_space(1))) char * ptr
 				 = (__attribute__((address_space(1))) char *)
-					sc.send(__NR_mmap,
+					sc.send(SYS_mmap,
 					       {0, lsize, PROT_READ,
 					        MAP_PRIVATE, lfd, 0});
 			ret[i] = (T)ptr;

@@ -3,8 +3,8 @@
 #include <iostream>
 #include <string>
 
-#include <asm/unistd.h>
 #include <unistd.h>
+#include <sys/syscall.h>
 
 #include "test.h"
 #include "amp_syscalls.h"
@@ -23,14 +23,14 @@ static int run(const test_params &p, ::std::ostream &O,
 		[&](concurrency::index<1> idx) restrict(amp) {
 			int i = idx[0];
 			for (size_t j = 0; j < p.serial; ++j)
-				ret[i] = sc.send(0);
+				ret[i] = sc.send(SYS_restart_syscall);
 		};
 	auto f_s =
 		[&](concurrency::tiled_index<WG_SIZE> tidx) restrict(amp) {
 			int i = tidx.global[0];
 			for (size_t j = 0; j < p.serial; ++j) {
 				tidx.barrier.wait();
-				ret[i] = sc.send(0);
+				ret[i] = sc.send(SYS_restart_syscall);
 				tidx.barrier.wait();
 			}
 		};
@@ -39,7 +39,7 @@ static int run(const test_params &p, ::std::ostream &O,
 			int i = idx[0];
 			for (size_t j = 0; j < p.serial; ++j) {
 				do {
-					ret[i] = sc.send_nonblock(0);
+					ret[i] = sc.send_nonblock(SYS_restart_syscall);
 				} while (ret[i] == EAGAIN);
 			}
 		};
@@ -48,7 +48,7 @@ static int run(const test_params &p, ::std::ostream &O,
 			int i = idx[0];
 			for (size_t j = 0; j < p.serial; ++j) {
 				sc.wait_one_free();
-				ret[i] = sc.send_nonblock(0);
+				ret[i] = sc.send_nonblock(SYS_restart_syscall);
 			}
 		};
 	auto f_s_n =
@@ -57,7 +57,7 @@ static int run(const test_params &p, ::std::ostream &O,
 			for (size_t j = 0; j < p.serial; ++j) {
 				tidx.barrier.wait();
 				do {
-					ret[i] = sc.send_nonblock(0);
+					ret[i] = sc.send_nonblock(SYS_restart_syscall);
 				} while (ret[i] == EAGAIN);
 				tidx.barrier.wait();
 			}

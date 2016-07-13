@@ -4,9 +4,9 @@
 #include <iostream>
 #include <string>
 
-#include <asm/unistd.h>
 #include <fcntl.h>
 #include <sys/mman.h>
+#include <sys/syscall.h>
 
 #include "test.h"
 
@@ -55,7 +55,7 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 			// available slots
 			__attribute__((address_space(1))) int * ptr
 				 = (__attribute__((address_space(1))) int *)
-					sc.send(__NR_mmap,
+					sc.send(SYS_mmap,
 					       {0, lsize,
 					        PROT_READ | PROT_WRITE,
 					        MAP_PRIVATE | MAP_ANONYMOUS,
@@ -73,7 +73,7 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 			tidx.barrier.wait();
 			__attribute__((address_space(1))) int * ptr
 				 = (__attribute__((address_space(1))) int *)
-					sc.send(__NR_mmap,
+					sc.send(SYS_mmap,
 					       {0, lsize,
 					        PROT_READ | PROT_WRITE,
 					        MAP_PRIVATE | MAP_ANONYMOUS,
