@@ -1,5 +1,6 @@
 MAIN_SRCS= \
 	bench-nop.cpp \
+	bench-pwrite.cpp \
 	bench-read.cpp \
 	bench-write.cpp \
 	mmap-anonymous.cpp \
