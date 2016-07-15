@@ -6,7 +6,8 @@ MAIN_SRCS= \
 	bench-write.cpp \
 	mmap-anonymous.cpp \
 	mmap-file.cpp \
-	munmap.cpp
+	munmap.cpp \
+	seek.cpp
 
 AUX_SRCS= \
 	main.cpp
