@@ -4,6 +4,7 @@ MAIN_SRCS= \
 	bench-pwrite.cpp \
 	bench-read.cpp \
 	bench-write.cpp \
+	close.cpp \
 	mmap-anonymous.cpp \
 	mmap-file.cpp \
 	munmap.cpp \
