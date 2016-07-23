@@ -18,6 +18,7 @@ static void help(int argc, char *argv[])
 	::std::cerr << "\t--out\twrite output to file\n";
 	::std::cerr << "\t--str\tuse given string instead of the default\n";
 	::std::cerr << "\t--strn\tuse given string with appended newline\n";
+	::std::cerr << "\t--size\tuse generated string of given size instead fo the default\n";
 }
 
 static bool parse(const ::std::string &opt, const ::std::string &arg)
