@@ -1,0 +1,40 @@
+MAIN_SRCS= \
+	bench-write.omp.cpp \
+
+AUX_SRCS= \
+	main.omp.cpp
+
+BINS=$(addprefix test-, $(subst .cpp,,$(MAIN_SRCS)))
+
+SRCS=$(MAIN_SRCS) $(AUX_SRCS)
+AUX_OBJS=$(AUX_SRCS:.cpp=.o)
+OBJS=$(SRCS:.cpp=.o)
+DEPS=$(SRCS:.cpp=.d)
+
+CXX=~/.local/bin/clang++
+LLVM_CONFIG=~/.local/bin/llvm-config
+
+#hcc-config mixes compiler and preprocessor flags
+LLVM_CPPFLAGS=$(shell $(LLVM_CONFIG) --cxxflags)
+LLVM_CXXFLAGS=$(shell $(LLVM_CONFIG) --cxxflags)
+LLVM_LDFLAGS=$(shell $(LLVM_CONFIG) --ldflags)
+
+CPP_FLAGS=$(LLVM_CPPFLAGS)
+CXX_FLAGS=$(LLVM_CXXFLAGS) -g -O3 -fopenmp -std=c++11
+LD_FLAGS=$(LLVM_LDFLAGS) -fopenmp
+
+all: $(BINS)
+
+test-% : %.o $(AUX_OBJS)
+	$(CXX) $^ -o $@ $(LD_FLAGS)
+
+%.o: %.cpp
+	$(CXX) -c $< $(CPP_FLAGS) $(CXX_FLAGS) -o $@
+
+%.d: %.cpp
+	$(CXX) -MMD -MF $@ $(CPP_FLAGS) $< -E > /dev/null
+
+-include $(DEPS)
+
+clean:
+	rm -vf $(OBJS) $(BINS) $(DEPS)

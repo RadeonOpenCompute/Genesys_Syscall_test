@@ -1,9 +1,11 @@
 #ifndef TEST_H
 #define TEST_H
 
+#ifdef __HCC__
 #include "amp_syscalls.h"
-
 #include <amp.h>
+#endif
+
 #include <cstddef>
 #include <ostream>
 
@@ -25,7 +27,10 @@ struct test_params {
 	}
 };
 
-static inline ::std::ostream & operator << (::std::ostream &O, const test_params &t) restrict(cpu)
+static inline ::std::ostream & operator << (::std::ostream &O, const test_params &t)
+#ifdef __HCC__
+restrict(cpu)
+#endif
 {
 	O << "(parallel: " << t.parallel
 	  << ", serial: " << t.serial
@@ -41,6 +46,15 @@ static inline ::std::ostream & operator << (::std::ostream &O, const test_params
 extern int no_cpu(const test_params &params, ::std::ostream &out,
                   int argc, char *argv[]);
 
+#ifndef __HCC__
+struct syscalls {
+	static syscalls& get() {
+		static syscalls instance;
+		return instance;
+	}
+};
+#endif
+
 struct test {
 	int (*run_gpu)(const test_params &params, ::std::ostream &out,
 	           syscalls &sc, int argc, char *argv[]);
@@ -53,6 +67,7 @@ struct test {
 
 extern struct test test_instance;
 
+#ifdef __HCC__
 template<class F, class FS, class FN, class FNS, class FNW>
 void test_run(const test_params &p, const syscalls &sc,
               F& f, FS &fs, FN &fn, FNS &fns, FNW &fnw)
@@ -73,5 +88,6 @@ void test_run(const test_params &p, const syscalls &sc,
 	if (p.non_block && !p.dont_wait_after)
 		sc.wait_all();
 }
+#endif
 
 #endif
