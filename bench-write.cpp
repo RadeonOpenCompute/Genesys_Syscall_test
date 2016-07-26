@@ -10,7 +10,8 @@
 #include "test.h"
 #include "amp_syscalls.h"
 
-static int fd = 1;
+static ::std::deque<::std::string> files;
+static ::std::vector<int> fds(1, 1);
 static ::std::string str = "Hello World from the GPU!\n";
 
 static void help(int argc, char *argv[])
@@ -19,13 +20,14 @@ static void help(int argc, char *argv[])
 	::std::cerr << "\t--str\tuse given string instead of the default\n";
 	::std::cerr << "\t--strn\tuse given string with appended newline\n";
 	::std::cerr << "\t--size\tuse generated string of given size instead fo the default\n";
+	::std::cerr << "\t--count\twrite to n different temporary files\n";
 }
 
 static bool parse(const ::std::string &opt, const ::std::string &arg)
 {
 	if (opt == "--out") {
 		::std::cerr << "writing to " << arg << " instead of stdout\n";
-		fd = open(arg.c_str(), O_CREAT | O_WRONLY, 0666);
+		fds[0] = open(arg.c_str(), O_CREAT | O_WRONLY, 0666);
 		return true;
 	}
 	if (opt == "--str") {
@@ -46,6 +48,25 @@ static bool parse(const ::std::string &opt, const ::std::string &arg)
 		str = ::std::string(size, 'x');
 		return true;
 	}
+	if (opt == "--count") {
+		size_t count = ::std::stoi(arg);
+		::std::cerr << "Setting number of files to " << count << ".\n";
+		fds.clear();
+		while (count--) {
+			char name[] = "/tmp/gpu-sc-writeXXXXXXX";
+			mkstemp(name);
+			int fd = open(name, O_CREAT | O_WRONLY, 0666);
+			if (fd != -1) {
+				fds.push_back(fd);
+				files.push_back(name);
+			} else {
+				::std::cerr << "Failed to open temporary file: "
+				            << name << "\n";
+				return false;
+			}
+		}
+		return true;
+	}
 	return false;
 }
 
@@ -53,7 +74,7 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
                    int argc, char *argv[])
 {
 	// HCC is very bad with globals
-	uint64_t local_fd = fd;
+	auto local_fds = fds;
 	uint64_t local_str_ptr = (uint64_t)str.c_str();
 	uint64_t local_size = str.size();
 
@@ -61,50 +82,55 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 
 	auto f = [&](concurrency::index<1> idx) restrict(amp) {
 		int i = idx[0];
+		uint64_t fd = local_fds[(i / 64) % local_fds.size()];
 		for (size_t j = 0; j < p.serial; ++j) {
 			// we don't need to wait here, since
 			// blockingoperation guarantees
 			// available slots
 			ret[i] = sc.send(SYS_write,
-				         {local_fd, local_str_ptr, local_size});
+				         {fd, local_str_ptr, local_size});
 		}
 	};
 	auto f_s = [&](concurrency::tiled_index<WG_SIZE> tidx) restrict(amp) {
 		int i = tidx.global[0];
+		uint64_t fd = local_fds[(i / 64) % local_fds.size()];
 		for (size_t j = 0; j < p.serial; ++j) {
 			// we don't need to wait here, since
 			// blockingoperation guarantees
 			// available slots. but we can sync across WGs
 			tidx.barrier.wait();
 			ret[i] = sc.send(SYS_write,
-				         {local_fd, local_str_ptr, local_size});
+				         {fd, local_str_ptr, local_size});
 			tidx.barrier.wait();
 		}
 	};
 	auto f_n = [&](concurrency::index<1> idx) restrict(amp) {
 		int i = idx[0];
+		uint64_t fd = local_fds[(i / 64) % local_fds.size()];
 		for (size_t j = 0; j < p.serial; ++j) {
 			do {
 				ret[i] = sc.send_nonblock(SYS_write,
-				         {local_fd, local_str_ptr, local_size});
+				         {fd, local_str_ptr, local_size});
 			} while (ret[i] == EAGAIN);
 		}
 	};
 	auto f_w_n = [&](concurrency::index<1> idx) restrict(amp) {
 		int i = idx[0];
+		uint64_t fd = local_fds[(i / 64) % local_fds.size()];
 		for (size_t j = 0; j < p.serial; ++j) {
 			sc.wait_one_free();
 			ret[i] = sc.send_nonblock(SYS_write,
-			         {local_fd, local_str_ptr, local_size});
+			         {fd, local_str_ptr, local_size});
 		}
 	};
 	auto f_s_n = [&](concurrency::tiled_index<WG_SIZE> tidx) restrict(amp) {
 		int i = tidx.global[0];
+		uint64_t fd = local_fds[(i / 64) % local_fds.size()];
 		for (size_t j = 0; j < p.serial; ++j) {
 			tidx.barrier.wait();
 			do {
 				ret[i] = sc.send_nonblock(SYS_write,
-				         {local_fd, local_str_ptr, local_size});
+				         {fd, local_str_ptr, local_size});
 			} while (ret[i] == EAGAIN);
 			tidx.barrier.wait();
 		}
@@ -115,12 +141,15 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 	auto end = ::std::chrono::high_resolution_clock::now();
 	auto us = ::std::chrono::duration_cast<::std::chrono::microseconds>(end - start);
 	O << us.count() << std::endl;
-	if (fd != 1)
-		close(fd);
-
 	if (::std::any_of(ret.begin(), ret.end(), [&](int ret) {
 		return p.non_block ? (ret != 0) : (ret != str.size()); }))
-		::std::cerr << "Not all return values match\n";
+		::std::cerr << "Not all returned values match\n";
+
+	for (int fd : fds)
+		if (fd != 1)
+			close(fd);
+	for (auto f : files)
+		remove(f.c_str());
 
 	return 0;
 };
@@ -133,7 +162,7 @@ static int run_cpu(const test_params &p, ::std::ostream &O,
 		return 0;
 	}
 	// HCC is very bad with globals
-	uint64_t local_fd = fd;
+	auto local_fds = fds;
 	const char * local_str_ptr = str.c_str();
 	uint64_t local_size = str.size();
 
@@ -141,25 +170,29 @@ static int run_cpu(const test_params &p, ::std::ostream &O,
 	auto start = ::std::chrono::high_resolution_clock::now();
 	for (size_t i = 0; i < p.parallel; ++i)
 	{
+		int fd = local_fds[i % local_fds.size()];
 		for (size_t j = 0; j < p.serial; ++j) {
 			if (p.non_block) {
 				do {
-					ret[i] = write(local_fd, local_str_ptr,
+					ret[i] = write(fd, local_str_ptr,
 					          local_size);
 				} while (ret[i] == EAGAIN);
 			} else {
-				ret[i] = write(local_fd, local_str_ptr, local_size);
+				ret[i] = write(fd, local_str_ptr, local_size);
 			}
 		}
 	};
 	auto end = ::std::chrono::high_resolution_clock::now();
 	auto us = ::std::chrono::duration_cast<::std::chrono::microseconds>(end - start);
 	O << us.count() << std::endl;
-	if (fd != 1)
-		close(fd);
+	for (int fd : fds)
+		if (fd != 1)
+			close(fd);
 	if (::std::any_of(ret.begin(), ret.end(), [&](int ret) {
 		return ret != str.size(); }))
 		::std::cerr << "Not all return values match\n";
+	for (auto f : files)
+		remove(f.c_str());
 	return 0;
 };
 
