@@ -5,6 +5,7 @@
 static const struct option options[] = {
 	{"parallel", required_argument, NULL, 'p'},
 	{"serial", required_argument, NULL, 's'},
+	{"wg-size", required_argument, NULL, 'g'},
 	{"nonblock", no_argument, NULL, 'n'},
 	{"dont-wait-after", no_argument, NULL, 'd'},
 	{"gpu-sync-before", no_argument, NULL, 'y'},
@@ -20,10 +21,11 @@ int main(int argc, char *argv[])
 	test_params params;
 	char c;
 	opterr = 0;
-	while ((c = getopt_long(argc, argv, "p:s:ndywcht", options, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, "p:s:g:ndywcht", options, NULL)) != -1) {
 		switch (c) {
 		case 'p': params.parallel = ::std::atoi(optarg); break;
 		case 's': params.serial = ::std::atoi(optarg); break;
+		case 'g': params.wg_size = ::std::atoi(optarg); break;
 		case 'n': params.non_block = true; break;
 		case 'd': params.dont_wait_after = true; break;
 		case 'y': params.gpu_sync_before = true; break;
