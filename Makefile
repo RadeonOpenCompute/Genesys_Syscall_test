@@ -2,6 +2,7 @@ MAIN_SRCS= \
 	bench-nop.cpp \
 	bench-pread-wi.cpp \
 	bench-pwrite-wi.cpp \
+	bench-read-wg.cpp \
 	bench-read-wi.cpp \
 	bench-write-wg.cpp \
 	bench-write-wi.cpp \
