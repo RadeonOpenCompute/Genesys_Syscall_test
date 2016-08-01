@@ -73,8 +73,8 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 			// available slots. but we can sync across WGs
 			tidx.barrier.wait();
 			uint64_t buf = (uint64_t)rdata[i].data();
-			ret[i] = sc.send(SYS_read, {lfd, buf, lsize,
-			                            lsize * i});
+			ret[i] = sc.send(SYS_pread64, {lfd, buf, lsize,
+			                               lsize * i});
 			tidx.barrier.wait();
 		}
 	};
