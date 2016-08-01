@@ -21,7 +21,7 @@ OBJS=$(SRCS:.cpp=.o)
 DEPS=$(SRCS:.cpp=.d)
 
 HCC_CONFIG=/opt/hcc-amdgpu/bin/hcc-config
-CXX=/opt/hcc-amdgpu/bin/clang++
+CXX=/opt/hcc-amdgpu/bin/hcc
 
 #hcc-config mixes compiler and preprocessor flags
 HCC_CPPFLAGS=$(shell $(HCC_CONFIG) --cxxflags --install)

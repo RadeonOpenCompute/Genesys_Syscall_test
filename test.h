@@ -2,14 +2,12 @@
 #define TEST_H
 
 #ifdef __HCC__
-#include "amp_syscalls.h"
-#include <amp.h>
+#include <hc_syscalls.h>
+#include <hc.hpp>
 #endif
 
 #include <cstddef>
 #include <ostream>
-
-#define WG_SIZE 1024
 
 struct test_params {
 	size_t parallel = 1;
@@ -24,14 +22,14 @@ struct test_params {
 	bool isValid() const
 	{
 		return (!gpu_sync_before ||  !gpu_wait_before) && parallel > 0
-			&& ((parallel % WG_SIZE == 0) || !gpu_sync_before)
+			&& ((parallel % wg_size == 0) || !gpu_sync_before)
 			&& (wg_size < 1024);
 	}
 };
 
 static inline ::std::ostream & operator << (::std::ostream &O, const test_params &t)
 #ifdef __HCC__
-restrict(cpu)
+[[cpu]]
 #endif
 {
 	O << "(parallel: " << t.parallel
@@ -75,18 +73,19 @@ template<class F, class FS, class FN, class FNS, class FNW>
 void test_run(const test_params &p, const syscalls &sc,
               F& f, FS &fs, FN &fn, FNS &fns, FNW &fnw)
 {
+	auto extent = hc::extent<1>::extent(p.parallel);
 	if (!p.non_block) {
 		if (p.gpu_sync_before)
-			parallel_for_each(concurrency::tiled_extent<WG_SIZE>(concurrency::extent<1>(p.parallel)), fs);
+			parallel_for_each(extent.tile(p.wg_size), fs).wait();
 		else
-			parallel_for_each(concurrency::extent<1>(p.parallel), f);
+			parallel_for_each(extent, f).wait();
 	} else {
 		if (p.gpu_sync_before)
-			parallel_for_each(concurrency::tiled_extent<WG_SIZE>(concurrency::extent<1>(p.parallel)), fns);
+			parallel_for_each(extent.tile(p.wg_size), fns).wait();
 		else if (p.gpu_wait_before)
-			parallel_for_each(concurrency::extent<1>(p.parallel), fnw);
+			parallel_for_each(extent, fnw).wait();
 		else
-			parallel_for_each(concurrency::extent<1>(p.parallel), fn);
+			parallel_for_each(extent, fn).wait();
 	}
 	if (p.non_block && !p.dont_wait_after)
 		sc.wait_all();

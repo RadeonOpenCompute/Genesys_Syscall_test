@@ -1,5 +1,5 @@
-#include <amp.h>
-#include <amp_syscalls.h>
+#include <hc.hpp>
+#include <hc_syscalls.h>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -54,7 +54,7 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 	for (auto &s : rdata)
 		s.resize(lsize);
 
-	auto f = [&](concurrency::index<1> idx) restrict(amp) {
+	auto f = [&](hc::index<1> idx) [[hc]] {
 		int i = idx[0];
 		for (size_t j = 0; j < p.serial; ++j) {
 			// we don't need to wait here, since
@@ -65,7 +65,7 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 			                               lsize * i});
 		}
 	};
-	auto f_s = [&](concurrency::tiled_index<WG_SIZE> tidx) restrict(amp) {
+	auto f_s = [&](hc::tiled_index<1> tidx) [[hc]] {
 		int i = tidx.global[0];
 		for (size_t j = 0; j < p.serial; ++j) {
 			// we don't need to check for available slot here,
@@ -78,11 +78,11 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 			tidx.barrier.wait();
 		}
 	};
-	auto f_n = [&](concurrency::index<1> idx) restrict(amp) {
+	auto f_n = [&](hc::index<1> idx) [[hc]] {
 	};
-	auto f_w_n = [&](concurrency::index<1> idx) restrict(amp) {
+	auto f_w_n = [&](hc::index<1> idx) [[hc]] {
 	};
-	auto f_s_n = [&](concurrency::tiled_index<WG_SIZE> tidx) restrict(amp) {
+	auto f_s_n = [&](hc::tiled_index<1> tidx) [[hc]] {
 	};
 
 	auto start = ::std::chrono::high_resolution_clock::now();

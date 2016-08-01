@@ -1,4 +1,4 @@
-#include <amp.h>
+#include <hc.hpp>
 #include <chrono>
 #include <iostream>
 #include <string>
@@ -7,7 +7,7 @@
 #include <sys/syscall.h>
 
 #include "test.h"
-#include "amp_syscalls.h"
+#include <hc_syscalls.h>
 
 static int run(const test_params &p, ::std::ostream &O,
                syscalls &sc, int argc, char **argv)
@@ -20,13 +20,13 @@ static int run(const test_params &p, ::std::ostream &O,
 
 
 	auto f =
-		[&](concurrency::index<1> idx) restrict(amp) {
+		[&](hc::index<1> idx) [[hc]] {
 			int i = idx[0];
 			for (size_t j = 0; j < p.serial; ++j)
 				ret[i] = sc.send(SYS_restart_syscall);
 		};
 	auto f_s =
-		[&](concurrency::tiled_index<WG_SIZE> tidx) restrict(amp) {
+		[&](hc::tiled_index<1> tidx) [[hc]] {
 			int i = tidx.global[0];
 			for (size_t j = 0; j < p.serial; ++j) {
 				tidx.barrier.wait();
@@ -35,7 +35,7 @@ static int run(const test_params &p, ::std::ostream &O,
 			}
 		};
 	auto f_n =
-		[&](concurrency::index<1> idx) restrict(amp) {
+		[&](hc::index<1> idx) [[hc]] {
 			int i = idx[0];
 			for (size_t j = 0; j < p.serial; ++j) {
 				do {
@@ -44,7 +44,7 @@ static int run(const test_params &p, ::std::ostream &O,
 			}
 		};
 	auto f_w_n =
-		[&](concurrency::index<1> idx) restrict(amp) {
+		[&](hc::index<1> &idx) [[hc]] {
 			int i = idx[0];
 			for (size_t j = 0; j < p.serial; ++j) {
 				sc.wait_one_free();
@@ -52,7 +52,7 @@ static int run(const test_params &p, ::std::ostream &O,
 			}
 		};
 	auto f_s_n =
-		[&](concurrency::tiled_index<WG_SIZE> tidx) restrict(amp) {
+		[&](hc::tiled_index<1> &tidx) [[hc]] {
 			int i = tidx.global[0];
 			for (size_t j = 0; j < p.serial; ++j) {
 				tidx.barrier.wait();

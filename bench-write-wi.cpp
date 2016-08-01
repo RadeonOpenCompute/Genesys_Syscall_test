@@ -1,4 +1,4 @@
-#include <amp.h>
+#include <hc.hpp>
 #include <deque>
 #include <iostream>
 #include <string>
@@ -8,7 +8,7 @@
 #include <fcntl.h>
 
 #include "test.h"
-#include "amp_syscalls.h"
+#include <hc_syscalls.h>
 
 static ::std::deque<::std::string> files;
 static ::std::vector<int> fds(1, 1);
@@ -80,7 +80,7 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 
 	::std::vector<int> ret(p.parallel);
 
-	auto f = [&](concurrency::index<1> idx) restrict(amp) {
+	auto f = [&](hc::index<1> idx) [[hc]] {
 		int i = idx[0];
 		uint64_t fd = local_fds[(i / 64) % local_fds.size()];
 		for (size_t j = 0; j < p.serial; ++j) {
@@ -91,7 +91,7 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 				         {fd, local_str_ptr, local_size});
 		}
 	};
-	auto f_s = [&](concurrency::tiled_index<WG_SIZE> tidx) restrict(amp) {
+	auto f_s = [&](hc::tiled_index<1> tidx) [[hc]] {
 		int i = tidx.global[0];
 		uint64_t fd = local_fds[(i / 64) % local_fds.size()];
 		for (size_t j = 0; j < p.serial; ++j) {
@@ -104,7 +104,7 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 			tidx.barrier.wait();
 		}
 	};
-	auto f_n = [&](concurrency::index<1> idx) restrict(amp) {
+	auto f_n = [&](hc::index<1> idx) [[hc]] {
 		int i = idx[0];
 		uint64_t fd = local_fds[(i / 64) % local_fds.size()];
 		for (size_t j = 0; j < p.serial; ++j) {
@@ -114,7 +114,7 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 			} while (ret[i] == EAGAIN);
 		}
 	};
-	auto f_w_n = [&](concurrency::index<1> idx) restrict(amp) {
+	auto f_w_n = [&](hc::index<1> idx) [[hc]] {
 		int i = idx[0];
 		uint64_t fd = local_fds[(i / 64) % local_fds.size()];
 		for (size_t j = 0; j < p.serial; ++j) {
@@ -123,7 +123,7 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 			         {fd, local_str_ptr, local_size});
 		}
 	};
-	auto f_s_n = [&](concurrency::tiled_index<WG_SIZE> tidx) restrict(amp) {
+	auto f_s_n = [&](hc::tiled_index<1> tidx) [[hc]] {
 		int i = tidx.global[0];
 		uint64_t fd = local_fds[(i / 64) % local_fds.size()];
 		for (size_t j = 0; j < p.serial; ++j) {
