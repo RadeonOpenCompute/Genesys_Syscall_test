@@ -12,7 +12,7 @@
 struct test_params {
 	size_t parallel = 1;
 	size_t serial = 1;
-	size_t wg_size = 64;
+	size_t wg_size = 1;
 	bool non_block = false;
 	bool dont_wait_after = false;
 	bool gpu_sync_before = false;
@@ -22,7 +22,7 @@ struct test_params {
 	bool isValid() const
 	{
 		return (!gpu_sync_before ||  !gpu_wait_before) && parallel > 0
-			&& ((parallel % wg_size == 0) || !gpu_sync_before)
+			&& (parallel % wg_size == 0)
 			&& (wg_size < 1024);
 	}
 };
