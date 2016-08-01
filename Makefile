@@ -1,5 +1,6 @@
 MAIN_SRCS= \
 	bench-nop.cpp \
+	bench-pread-kernel.cpp \
 	bench-pread-wg.cpp \
 	bench-pread-wi.cpp \
 	bench-pwrite-kernel.cpp \
