@@ -3,6 +3,7 @@ MAIN_SRCS= \
 	bench-pread-wi.cpp \
 	bench-pwrite-wi.cpp \
 	bench-read-wi.cpp \
+	bench-write-wg.cpp \
 	bench-write-wi.cpp \
 	close.cpp \
 	mmap-anonymous.cpp \
