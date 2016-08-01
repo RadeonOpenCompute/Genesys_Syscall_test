@@ -6,6 +6,7 @@ MAIN_SRCS= \
 	bench-pwrite-wi.cpp \
 	bench-read-wg.cpp \
 	bench-read-wi.cpp \
+	bench-write-kernel.cpp \
 	bench-write-wg.cpp \
 	bench-write-wi.cpp \
 	close.cpp \
