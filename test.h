@@ -23,7 +23,7 @@ struct test_params {
 	{
 		return (!gpu_sync_before ||  !gpu_wait_before) && parallel > 0
 			&& (parallel % wg_size == 0)
-			&& (wg_size < 1024);
+			&& (wg_size <= 1024) && (wg_size > 0);
 	}
 };
 
