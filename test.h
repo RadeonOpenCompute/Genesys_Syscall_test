@@ -78,14 +78,14 @@ void test_run(const test_params &p, const syscalls &sc,
 		if (p.gpu_sync_before)
 			parallel_for_each(extent.tile(p.wg_size), fs).wait();
 		else
-			parallel_for_each(extent, f).wait();
+			parallel_for_each(extent.tile(p.wg_size), f).wait();
 	} else {
 		if (p.gpu_sync_before)
 			parallel_for_each(extent.tile(p.wg_size), fns).wait();
 		else if (p.gpu_wait_before)
-			parallel_for_each(extent, fnw).wait();
+			parallel_for_each(extent.tile(p.wg_size), fnw).wait();
 		else
-			parallel_for_each(extent, fn).wait();
+			parallel_for_each(extent.tile(p.wg_size), fn).wait();
 	}
 	if (p.non_block && !p.dont_wait_after)
 		sc.wait_all();
