@@ -197,5 +197,5 @@ struct test test_instance = {
 	.run_cpu = run_cpu,
 	.parse_option = parse,
 	.help = help,
-	.name = "pwrite",
+	.name = "pwrite (work-group scope)",
 };

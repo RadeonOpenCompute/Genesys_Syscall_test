@@ -201,5 +201,5 @@ struct test test_instance = {
 	.run_cpu = run_cpu,
 	.parse_option = parse,
 	.help = help,
-	.name = "Hello World",
+	.name = "write (work-item scope)",
 };

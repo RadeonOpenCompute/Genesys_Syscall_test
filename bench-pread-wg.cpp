@@ -127,5 +127,5 @@ struct test test_instance = {
 	.run_gpu = run_gpu,
 	.parse_option = parse,
 	.help = help,
-	.name = "read",
+	.name = "pread (work-group scope)",
 };
