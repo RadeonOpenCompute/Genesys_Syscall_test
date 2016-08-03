@@ -51,6 +51,11 @@ static bool parse(const ::std::string &opt, const ::std::string &arg)
 static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
                    int argc, char *argv[])
 {
+	if (p.gpu_sync_before) {
+		::std::cerr << "Error: Unsupported configuration: " << p << "\n";
+		return 1;
+	}
+
 	if (lseek(fd, 0, SEEK_CUR) == -1) {
 		::std::cerr << "Error: pwrite works only on seekable fds\n";
 		return 1;	

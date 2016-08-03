@@ -53,6 +53,10 @@ static bool parse(const ::std::string &opt, const ::std::string &arg)
 static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
                    int argc, char *argv[])
 {
+	if (p.gpu_sync_before) {
+		::std::cerr << "Error: Unsupported configuration: " << p << "\n";
+		return 1;
+	}
 	str.resize(str.size() * p.parallel, 'y');
 
 	// HCC is very bad with globals

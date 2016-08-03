@@ -31,6 +31,10 @@ static bool parse(const ::std::string &opt, const ::std::string &arg)
 static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
                    int argc, char *argv[])
 {
+	if (p.non_block || p.gpu_sync_before || p.gpu_wait_before) {
+		::std::cerr << "Error: Unsupported configuration: " << p << "\n";
+		return 1;
+	}
 	FILE * tmpf = NULL;
 	char name[] = "/tmp/XXXXXXX";
 
