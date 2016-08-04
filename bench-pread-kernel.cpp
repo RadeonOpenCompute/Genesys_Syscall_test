@@ -50,7 +50,8 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 	::std::vector<std::atomic_uint> lock(p.serial);
 	::std::vector<std::atomic_uint> lock_after(p.serial);
 
-	auto f = [&](hc::index<1> idx) [[hc]] {
+	auto f = [&](hc::tiled_index<1> idx) [[hc]] {
+		int l_i = idx.local[0];
 		for (size_t j = 0; j < p.serial; ++j) {
 			// we don't need to wait here, since
 			// blocking operation guarantees
@@ -61,7 +62,9 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 				                               lsize * j});
 				lock_after[j] = 1;
 			}
-			while (lock_after[j] != 1);
+			if (l_i == 0)
+				while (lock_after[j] != 1);
+			idx.barrier.wait();
 		}
 	};
 	auto f_s = [&](hc::tiled_index<1> idx) [[hc]] {
