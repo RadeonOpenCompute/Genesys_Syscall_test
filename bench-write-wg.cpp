@@ -76,15 +76,19 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 	str.resize(str.size() * p.wg_size, 'y');
 	// HCC is very bad with globals
 	auto local_fds = fds;
-	uint64_t local_str_ptr = (uint64_t)str.c_str();
 	uint64_t local_size = str.size();
 
 	::std::vector<int> ret(p.parallel / p.wg_size);
+	::std::vector<::std::string> wdata(p.parallel / p.wg_size);
+	// Make sure everyone uses separate buffer
+	for (auto &s : wdata)
+		::std::copy(str.begin(), str.end(), ::std::back_inserter(s));
 
 	auto f = [&](hc::tiled_index<1> idx) [[hc]] {
 		int i = idx.tile[0];
 		int local_i = idx.local[0];
 		uint64_t fd = local_fds[local_i % local_fds.size()];
+		uint64_t local_ptr = (uint64_t)wdata[local_i].data();
 		for (size_t j = 0; j < p.serial; ++j) {
 			// we don't need to wait here, since
 			// blockingoperation guarantees
@@ -92,13 +96,14 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 			idx.barrier.wait();
 			if (local_i == 0)
 				ret[i] = sc.send(SYS_write,
-					         {fd, local_str_ptr, local_size});
+					         {fd, local_ptr, local_size});
 		}
 	};
 	auto f_s = [&](hc::tiled_index<1> idx) [[hc]] {
 		int i = idx.tile[0];
 		int local_i = idx.local[0];
 		uint64_t fd = local_fds[local_i % local_fds.size()];
+		uint64_t local_ptr = (uint64_t)wdata[local_i].data();
 		for (size_t j = 0; j < p.serial; ++j) {
 			// we don't need to wait here, since
 			// blockingoperation guarantees
@@ -106,7 +111,7 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 			idx.barrier.wait();
 			if (local_i == 0)
 				ret[i] = sc.send(SYS_write,
-					         {fd, local_str_ptr, local_size});
+					         {fd, local_ptr, local_size});
 			idx.barrier.wait();
 		}
 	};
@@ -114,12 +119,13 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 		int i = idx.tile[0];
 		int local_i = idx.local[0];
 		uint64_t fd = local_fds[local_i % local_fds.size()];
+		uint64_t local_ptr = (uint64_t)wdata[local_i].data();
 		for (size_t j = 0; j < p.serial; ++j) {
 			idx.barrier.wait();
 			if (local_i == 0)
 				do {
 					ret[i] = sc.send_nonblock(SYS_write,
-					         {fd, local_str_ptr, local_size});
+					         {fd, local_ptr, local_size});
 				} while (ret[i] == EAGAIN);
 		}
 	};
@@ -127,12 +133,13 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 		int i = idx.tile[0];
 		int local_i = idx.local[0];
 		uint64_t fd = local_fds[local_i % local_fds.size()];
+		uint64_t local_ptr = (uint64_t)wdata[local_i].data();
 		for (size_t j = 0; j < p.serial; ++j) {
 			idx.barrier.wait();
 			if (local_i == 0) {
 				sc.wait_one_free();
 				ret[i] = sc.send_nonblock(SYS_write,
-				         {fd, local_str_ptr, local_size});
+				         {fd, local_ptr, local_size});
 			}
 		}
 	};
@@ -140,12 +147,13 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 		int i = idx.tile[0];
 		int local_i = idx.local[0];
 		uint64_t fd = local_fds[local_i % local_fds.size()];
+		uint64_t local_ptr = (uint64_t)wdata[local_i].data();
 		for (size_t j = 0; j < p.serial; ++j) {
 			idx.barrier.wait();
 			if (local_i == 0)
 				do {
 					ret[i] = sc.send_nonblock(SYS_write,
-					         {fd, local_str_ptr, local_size});
+					         {fd, local_ptr, local_size});
 				} while (ret[i] == EAGAIN);
 			idx.barrier.wait();
 		}

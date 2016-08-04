@@ -59,14 +59,18 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 
 	// HCC is very bad with globals
 	uint64_t local_fd = fd;
-	uint64_t local_str_ptr = (uint64_t)str.c_str();
 	uint64_t local_size = str.size();
 
 	::std::vector<int> ret(p.parallel / p.wg_size);
+	::std::vector<::std::string> wdata(p.parallel / p.wg_size);
+	// Make sure everyone uses separate buffer
+	for (auto &s : wdata)
+		::std::copy(str.begin(), str.end(), ::std::back_inserter(s));
 
 	auto f = [&](hc::tiled_index<1> idx) [[hc]] {
 		int i = idx.tile[0];
 		int local_i = idx.local[0];
+		uint64_t local_ptr = (uint64_t)wdata[i].data();
 		for (size_t j = 0; j < p.serial; ++j) {
 			// we don't need to wait here, since
 			// blockingoperation guarantees
@@ -74,7 +78,7 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 			idx.barrier.wait();
 			if (local_i == 0)
 				ret[i] = sc.send(SYS_pwrite64,
-					         {local_fd, local_str_ptr,
+					         {local_fd, local_ptr,
 				                  local_size, local_size * i});
 			
 		}
@@ -82,6 +86,7 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 	auto f_s = [&](hc::tiled_index<1> idx) [[hc]] {
 		int i = idx.tile[0];
 		int local_i = idx.local[0];
+		uint64_t local_ptr = (uint64_t)wdata[i].data();
 		for (size_t j = 0; j < p.serial; ++j) {
 			// we don't need to wait here, since
 			// blockingoperation guarantees
@@ -89,7 +94,7 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 			idx.barrier.wait();
 			if (local_i == 0)
 				ret[i] = sc.send(SYS_pwrite64,
-					         {local_fd, local_str_ptr,
+					         {local_fd, local_ptr,
 				                  local_size, local_size * i});
 			idx.barrier.wait();
 		}
@@ -97,12 +102,13 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 	auto f_n = [&](hc::tiled_index<1> idx) [[hc]] {
 		int i = idx.tile[0];
 		int local_i = idx.local[0];
+		uint64_t local_ptr = (uint64_t)wdata[i].data();
 		for (size_t j = 0; j < p.serial; ++j) {
 			idx.barrier.wait();
 			if (local_i == 0)
 				do {
 					ret[i] = sc.send_nonblock(SYS_pwrite64,
-					         {local_fd, local_str_ptr,
+					         {local_fd, local_ptr,
 					          local_size, local_size * i});
 				} while (ret[i] == EAGAIN);
 		}
@@ -110,12 +116,13 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 	auto f_w_n = [&](hc::tiled_index<1> idx) [[hc]] {
 		int i = idx.tile[0];
 		int local_i = idx.local[0];
+		uint64_t local_ptr = (uint64_t)wdata[i].data();
 		for (size_t j = 0; j < p.serial; ++j) {
 			idx.barrier.wait();
 			if (local_i == 0) {
 				sc.wait_one_free();
 				ret[i] = sc.send_nonblock(SYS_pwrite64,
-				         {local_fd, local_str_ptr, local_size,
+				         {local_fd, local_ptr, local_size,
 				          local_size * i});
 			}
 		}
@@ -123,12 +130,13 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 	auto f_s_n = [&](hc::tiled_index<1> idx) [[hc]] {
 		int i = idx.tile[0];
 		int local_i = idx.local[0];
+		uint64_t local_ptr = (uint64_t)wdata[i].data();
 		for (size_t j = 0; j < p.serial; ++j) {
 			idx.barrier.wait();
 			if (local_i == 0)
 				do {
 					ret[i] = sc.send_nonblock(SYS_pwrite64,
-					         {local_fd, local_str_ptr,
+					         {local_fd, local_ptr,
 					          local_size, local_size * i});
 				} while (ret[i] == EAGAIN);
 			idx.barrier.wait();
@@ -163,21 +171,25 @@ static int run_cpu(const test_params &p, ::std::ostream &O,
 	}
 	// HCC is very bad with globals
 	uint64_t local_fd = fd;
-	const char * local_str_ptr = str.c_str();
 	uint64_t local_size = str.size();
 
 	::std::vector<int> ret(p.parallel);
+	::std::vector<::std::string> wdata(p.parallel);
+	// Make sure everyone uses separate buffer
+	for (auto &s : wdata)
+		::std::copy(str.begin(), str.end(), ::std::back_inserter(s));
 	auto start = ::std::chrono::high_resolution_clock::now();
 	for (size_t i = 0; i < p.parallel; ++i)
 	{
+		const char * local_ptr = wdata[i].data();
 		for (size_t j = 0; j < p.serial; ++j) {
 			if (p.non_block) {
 				do {
-					ret[i] = write(local_fd, local_str_ptr,
+					ret[i] = write(local_fd, local_ptr,
 					          local_size);
 				} while (ret[i] == EAGAIN);
 			} else {
-				ret[i] = write(local_fd, local_str_ptr, local_size);
+				ret[i] = write(local_fd, local_ptr, local_size);
 			}
 		}
 	};

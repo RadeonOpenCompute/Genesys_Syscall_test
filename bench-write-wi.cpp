@@ -1,6 +1,7 @@
 #include <hc.hpp>
 #include <deque>
 #include <iostream>
+#include <iterator>
 #include <string>
 
 #include <sys/syscall.h>
@@ -75,62 +76,69 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 {
 	// HCC is very bad with globals
 	auto local_fds = fds;
-	uint64_t local_str_ptr = (uint64_t)str.c_str();
 	uint64_t local_size = str.size();
 
 	::std::vector<int> ret(p.parallel);
+	::std::vector<::std::string> wdata(p.parallel);
+	// Make sure everyone uses separate buffer
+	for (auto &s : wdata)
+		::std::copy(str.begin(), str.end(), ::std::back_inserter(s));
 
 	auto f = [&](hc::index<1> idx) [[hc]] {
 		int i = idx[0];
 		uint64_t fd = local_fds[(i / 64) % local_fds.size()];
+		uint64_t local_ptr = (uint64_t)wdata[i].data();
 		for (size_t j = 0; j < p.serial; ++j) {
 			// we don't need to wait here, since
 			// blockingoperation guarantees
 			// available slots
 			ret[i] = sc.send(SYS_write,
-				         {fd, local_str_ptr, local_size});
+				         {fd, local_ptr, local_size});
 		}
 	};
 	auto f_s = [&](hc::tiled_index<1> tidx) [[hc]] {
 		int i = tidx.global[0];
 		uint64_t fd = local_fds[(i / 64) % local_fds.size()];
+		uint64_t local_ptr = (uint64_t)wdata[i].data();
 		for (size_t j = 0; j < p.serial; ++j) {
 			// we don't need to wait here, since
 			// blockingoperation guarantees
 			// available slots. but we can sync across WGs
 			tidx.barrier.wait();
-			ret[i] = sc.send(SYS_write,
-				         {fd, local_str_ptr, local_size});
+			ret[i] = sc.send(SYS_write, {fd, local_ptr, local_size});
 			tidx.barrier.wait();
 		}
 	};
 	auto f_n = [&](hc::index<1> idx) [[hc]] {
 		int i = idx[0];
 		uint64_t fd = local_fds[(i / 64) % local_fds.size()];
+		uint64_t local_ptr = (uint64_t)wdata[i].data();
 		for (size_t j = 0; j < p.serial; ++j) {
 			do {
 				ret[i] = sc.send_nonblock(SYS_write,
-				         {fd, local_str_ptr, local_size});
+				         {fd, local_ptr, local_size});
 			} while (ret[i] == EAGAIN);
 		}
 	};
 	auto f_w_n = [&](hc::index<1> idx) [[hc]] {
 		int i = idx[0];
 		uint64_t fd = local_fds[(i / 64) % local_fds.size()];
+		uint64_t local_ptr = (uint64_t)wdata[i].data();
 		for (size_t j = 0; j < p.serial; ++j) {
 			sc.wait_one_free();
 			ret[i] = sc.send_nonblock(SYS_write,
-			         {fd, local_str_ptr, local_size});
+			         {fd, local_ptr, local_size});
 		}
 	};
 	auto f_s_n = [&](hc::tiled_index<1> tidx) [[hc]] {
 		int i = tidx.global[0];
 		uint64_t fd = local_fds[(i / 64) % local_fds.size()];
+		uint64_t local_ptr = (uint64_t)wdata[i].data();
 		for (size_t j = 0; j < p.serial; ++j) {
 			tidx.barrier.wait();
 			do {
 				ret[i] = sc.send_nonblock(SYS_write,
-				         {fd, local_str_ptr, local_size});
+				         {fd, local_ptr, local_size});
 			} while (ret[i] == EAGAIN);
 			tidx.barrier.wait();
 		}
@@ -163,10 +171,14 @@ static int run_cpu(const test_params &p, ::std::ostream &O,
 	}
 	// HCC is very bad with globals
 	auto local_fds = fds;
-	const char * local_str_ptr = str.c_str();
 	uint64_t local_size = str.size();
 
 	::std::vector<int> ret(p.parallel);
+	::std::vector<::std::string> wdata(p.parallel);
+	// Make sure everyone uses separate buffer
+	for (auto &s : wdata)
+		::std::copy(str.begin(), str.end(), ::std::back_inserter(s));
+
 	auto start = ::std::chrono::high_resolution_clock::now();
 	for (size_t i = 0; i < p.parallel; ++i)
 	{
@@ -174,11 +186,11 @@ static int run_cpu(const test_params &p, ::std::ostream &O,
 		for (size_t j = 0; j < p.serial; ++j) {
 			if (p.non_block) {
 				do {
-					ret[i] = write(fd, local_str_ptr,
+					ret[i] = write(fd, wdata[i].data(),
 					          local_size);
 				} while (ret[i] == EAGAIN);
 			} else {
-				ret[i] = write(fd, local_str_ptr, local_size);
+				ret[i] = write(fd, wdata[i].data(), local_size);
 			}
 		}
 	};
