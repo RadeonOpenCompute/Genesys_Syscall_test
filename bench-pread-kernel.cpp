@@ -36,20 +36,11 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 		return 1;
 	}
 
-	FILE * tmpf = NULL;
-	char name[] = "/tmp/XXXXXXX";
-
 	::std::vector<char> data(size, 'x');
-
-	mkstemp(name);
-	tmpf = fopen(name, "wb+");
-	// TODO: consider writing and testing different patterns
-	for (size_t i = 0; i < (p.parallel * p.serial); ++i)
-		fwrite(data.data(), 1, data.size(), tmpf);
-	fflush(tmpf);
-	rewind(tmpf);
-
+	char name[] = "/tmp/XXXXXXX";
+	FILE * tmpf = init_tmp_file(data, p.parallel * p.serial, name);
 	int fd = fileno(tmpf);
+
 	// HCC is very bad with globals
 	size_t lsize = size * p.parallel;
 	uint64_t lfd = fd;
@@ -88,11 +79,8 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 	auto us = ::std::chrono::duration_cast<::std::chrono::microseconds>(end - start);
 	O << us.count() << std::endl;
 
-
-	if (tmpf) {
-		fclose(tmpf);
-		remove(name);
-	}
+	fclose(tmpf);
+	remove(name);
 
 	if (ret != lsize) {
 		::std::cerr << "Failed read (" << (ssize_t)ret << ")\n";

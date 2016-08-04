@@ -73,3 +73,18 @@ int no_cpu(const test_params &params, ::std::ostream &out,
 	            << ::std::endl;
 	return 1;
 }
+
+FILE * init_tmp_file(const ::std::vector<char> &data, size_t count, char* name)
+{
+	FILE * tmpf = NULL;
+
+	mkstemp(name);
+	tmpf = fopen(name, "wb+");
+	// Write the same stuff as the read order is undefined
+	for (size_t i = 0; i < count; ++i)
+		fwrite(data.data(), 1, data.size(), tmpf);
+	fflush(tmpf);
+	rewind(tmpf);
+
+	return tmpf;
+}

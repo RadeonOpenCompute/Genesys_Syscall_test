@@ -31,20 +31,11 @@ static bool parse(const ::std::string &opt, const ::std::string &arg)
 static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
                    int argc, char *argv[])
 {
-	FILE * tmpf = NULL;
-	char name[] = "/tmp/XXXXXXX";
-
 	::std::vector<char> data(size, 'x');
-
-	mkstemp(name);
-	tmpf = fopen(name, "wb+");
-	// TODO: consider writing and testing different patterns
-	for (size_t i = 0; i < p.parallel; ++i)
-		fwrite(data.data(), 1, data.size(), tmpf);
-	fflush(tmpf);
-	rewind(tmpf);
-
+	char name[] = "/tmp/XXXXXXX";
+	FILE * tmpf = init_tmp_file(data, p.parallel * p.serial, name);
 	int fd = fileno(tmpf);
+
 	// HCC is very bad with globals
 	size_t lsize = size;
 	uint64_t lfd = fd;
@@ -96,10 +87,8 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 		return ret != lsize; }))
 		::std::cerr << "Failed reads\n";
 
-	if (tmpf) {
-		fclose(tmpf);
-		remove(name);
-	}
+	fclose(tmpf);
+	remove(name);
 
 	for (size_t i = 0; i < ret.size(); ++i) {
 		if (ret[i] != lsize) {

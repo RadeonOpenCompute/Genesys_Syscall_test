@@ -92,4 +92,6 @@ void test_run(const test_params &p, const syscalls &sc,
 }
 #endif
 
+FILE * init_tmp_file(const ::std::vector<char> &data, size_t count, char* name);
+
 #endif
