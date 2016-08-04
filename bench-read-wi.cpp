@@ -113,9 +113,69 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 	return 0;
 };
 
+static int run_cpu(const test_params &p, ::std::ostream &O,
+                   int argc, char *argv[])
+{
+	FILE * tmpf = NULL;
+	char name[] = "/tmp/XXXXXXX";
+
+	::std::vector<char> data(size, 'x');
+
+	mkstemp(name);
+	tmpf = fopen(name, "wb+");
+	// Write the same stuff as the read order is undefined
+	for (size_t i = 0; i < p.parallel; ++i)
+		fwrite(data.data(), 1, data.size(), tmpf);
+	fflush(tmpf);
+	rewind(tmpf);
+
+	int fd = fileno(tmpf);
+	// HCC is very bad with globals
+	size_t lsize = size;
+	uint64_t lfd = fd;
+
+	::std::vector<ssize_t> ret(p.parallel);
+	::std::vector<::std::vector<char>> rdata(p.parallel);
+	for (auto &s : rdata)
+		s.resize(lsize);
+
+	auto start = ::std::chrono::high_resolution_clock::now();
+	for (size_t i = 0; i < p.parallel; ++i) {
+		for (size_t j = 0; j < p.serial; ++j)
+			ret[i] = read(lfd, rdata[i].data(), lsize);
+	}
+	auto end = ::std::chrono::high_resolution_clock::now();
+	auto us = ::std::chrono::duration_cast<::std::chrono::microseconds>(end - start);
+	O << us.count() << std::endl;
+
+
+	if (::std::any_of(ret.begin(), ret.end(), [&](ssize_t ret) {
+		return ret != lsize; }))
+		::std::cerr << "Failed reads\n";
+
+	if (tmpf) {
+		fclose(tmpf);
+		remove(name);
+	}
+
+	for (size_t i = 0; i < ret.size(); ++i) {
+		if (ret[i] != lsize) {
+			::std::cerr << "Failed read " << i << " ("
+			            << (ssize_t)ret[i] << ")\n";
+			return 1;
+		}
+		if (::std::memcmp(data.data(), rdata[i].data(), data.size()) != 0) {
+			::std::cerr << "GPU read data do not match\n";
+			return 1;
+		}
+	}
+	return 0;
+};
+
 
 struct test test_instance = {
 	.run_gpu = run_gpu,
+	.run_cpu = run_cpu,
 	.parse_option = parse,
 	.help = help,
 	.name = "read (work-item scope)",
