@@ -31,8 +31,12 @@ static bool parse(const ::std::string &opt, const ::std::string &arg)
 static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
                    int argc, char *argv[])
 {
-	if (p.non_block || p.gpu_sync_before || p.gpu_wait_before) {
+	if (p.non_block || p.gpu_wait_before) {
 		::std::cerr << "Error: Unsupported configuration: " << p << "\n";
+		return 1;
+	}
+	if (p.gpu_sync_before && !p.fitsGPU()) {
+		::std::cerr << "Error: Configuration would hang the GPU: " << p << "\n";
 		return 1;
 	}
 
@@ -68,6 +72,25 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 		}
 	};
 	auto f_s = [&](hc::tiled_index<1> idx) [[hc]] {
+		int i = idx.global[0];
+		int l_i = idx.local[0];
+		for (size_t j = 0; j < p.serial; ++j) {
+			++lock[j];
+			if (l_i == 0)
+				while (lock[j] != p.parallel);
+			idx.barrier.wait();
+
+			if (i == 0) {
+				uint64_t buf = (uint64_t)rdata.data();
+				ret = sc.send(SYS_pread64, {lfd, buf, lsize,
+				                               lsize * j});
+			}
+
+			++lock_after[j];
+			if (l_i == 0)
+				while (lock_after[j] != p.parallel);
+			idx.barrier.wait();
+		}
 	};
 	auto f_n = [&](hc::tiled_index<1> idx) [[hc]] {
 	};

@@ -25,6 +25,12 @@ struct test_params {
 			&& (parallel % wg_size == 0)
 			&& (wg_size <= 1024) && (wg_size > 0);
 	}
+	bool fitsGPU() const
+	{
+		size_t waves_per_wg = wg_size / ::std::min<size_t>(64, wg_size);
+		size_t waves = (parallel / wg_size) * waves_per_wg;
+		return waves <= 320; // Kaveri/Carrizo
+	}
 };
 
 static inline ::std::ostream & operator << (::std::ostream &O, const test_params &t)

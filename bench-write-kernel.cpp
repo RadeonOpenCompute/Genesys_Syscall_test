@@ -53,8 +53,8 @@ static bool parse(const ::std::string &opt, const ::std::string &arg)
 static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
                    int argc, char *argv[])
 {
-	if (p.gpu_sync_before) {
-		::std::cerr << "Error: Unsupported configuration: " << p << "\n";
+	if (p.gpu_sync_before && !p.fitsGPU()) {
+		::std::cerr << "Error: Configuration would hang the GPU: " << p << "\n";
 		return 1;
 	}
 	str.resize(str.size() * p.parallel, 'y');
@@ -67,6 +67,7 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 	int ret = -7;
 
 	std::vector<std::atomic_uint> locks(p.serial);
+	std::vector<std::atomic_uint> lock_after(p.serial);
 
 	auto f = [&](hc::index<1> idx) [[hc]] {
 		for (size_t j = 0; j < p.serial; ++j) {
@@ -78,7 +79,23 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 				        {local_fd, local_str_ptr, local_size});
 		}
 	};
-	auto f_s = [&](hc::tiled_index<1> tidx) [[hc]] {
+	auto f_s = [&](hc::tiled_index<1> idx) [[hc]] {
+		int i = idx.global[0];
+		int l_i = idx.local[0];
+		for (size_t j = 0; j < p.serial; ++j) {
+			++locks[j];
+			if (l_i == 0)
+				while (locks[j] != p.parallel);
+			idx.barrier.wait();
+			if (i == 0)
+				ret = sc.send(SYS_write,
+				              {local_fd, local_str_ptr,
+				               local_size});
+			++lock_after[j];
+			if (l_i == 0)
+				while (lock_after[j] != p.parallel);
+			idx.barrier.wait();
+		}
 	};
 
 	auto f_n = [&](hc::index<1> idx) [[hc]] {
@@ -99,7 +116,23 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 			}
 		}
 	};
-	auto f_s_n = [&](hc::tiled_index<1> tidx) [[hc]] {
+	auto f_s_n = [&](hc::tiled_index<1> idx) [[hc]] {
+		int i = idx.global[0];
+		int l_i = idx.local[0];
+		for (size_t j = 0; j < p.serial; ++j) {
+			++locks[j];
+			if (l_i == 0)
+				while (locks[j] != p.parallel);
+			idx.barrier.wait();
+			if (i == 0)
+				ret = sc.send_nonblock(SYS_write,
+				              {local_fd, local_str_ptr,
+				               local_size});
+			++lock_after[j];
+			if (l_i == 0)
+				while (lock_after[j] != p.parallel);
+			idx.barrier.wait();
+		}
 	};
 
 	auto start = ::std::chrono::high_resolution_clock::now();
