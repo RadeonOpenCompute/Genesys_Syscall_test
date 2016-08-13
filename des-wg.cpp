@@ -52,14 +52,12 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 	uint64_t tile_size = sizeof(uint64_t) * p.wg_size;
 
 	::std::vector<int> ret(p.parallel / p.wg_size);
-	::std::vector<::std::string> wdata(p.parallel / p.wg_size);
 	// Make sure everyone uses separate buffer
 
 	auto f = [&](hc::tiled_index<1> idx) [[hc]] {
 		int tile_i = idx.tile[0];
 		int local_i = idx.local[0];
 		int global_i = idx.global[0];
-
 
 		for (size_t j = 0; j < p.serial; ++j) {
 			data[global_i] = run_des(data[global_i], keys[j]);
@@ -77,7 +75,6 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 		int local_i = idx.local[0];
 		int global_i = idx.global[0];
 
-
 		for (size_t j = 0; j < p.serial; ++j) {
 			data[global_i] = run_des(data[global_i], keys[j]);
 		}
@@ -94,7 +91,6 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 		int tile_i = idx.tile[0];
 		int local_i = idx.local[0];
 		int global_i = idx.global[0];
-
 
 		for (size_t j = 0; j < p.serial; ++j) {
 			data[global_i] = run_des(data[global_i], keys[j]);
@@ -114,7 +110,6 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 		int local_i = idx.local[0];
 		int global_i = idx.global[0];
 
-
 		for (size_t j = 0; j < p.serial; ++j) {
 			data[global_i] = run_des(data[global_i], keys[j]);
 		}
@@ -131,7 +126,6 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 		int tile_i = idx.tile[0];
 		int local_i = idx.local[0];
 		int global_i = idx.global[0];
-
 
 		for (size_t j = 0; j < p.serial; ++j) {
 			data[global_i] = run_des(data[global_i], keys[j]);
