@@ -13,7 +13,7 @@ MAIN_SRCS= \
 	bench-write-wg.cpp \
 	bench-write-wi.cpp \
 	close.cpp \
-	des.cpp \
+	des-wg.cpp \
 	mmap-anonymous.cpp \
 	mmap-file.cpp \
 	munmap.cpp \
