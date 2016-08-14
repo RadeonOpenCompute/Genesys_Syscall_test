@@ -14,10 +14,14 @@
 
 
 static int fd = -1;
+static int size = 1;
+static int divisor = 1;
 
 static void help(int argc, char *argv[])
 {
 	::std::cerr << "\t--out\twrite output to file\n";
+	::std::cerr << "\t--size\tnumber of blocks to process per wi\n";
+	::std::cerr << "\t--divisor\tarbitrary ratio of gpu compute work\n";
 }
 
 static bool parse(const ::std::string &opt, const ::std::string &arg)
@@ -25,6 +29,16 @@ static bool parse(const ::std::string &opt, const ::std::string &arg)
 	if (opt == "--out") {
 		::std::cerr << "writing to " << arg << " instead of stdout\n";
 		fd = open(arg.c_str(), O_CREAT | O_WRONLY, 0666);
+		return true;
+	}
+	if (opt == "--size") {
+		::std::cerr << "setting size to " << arg << "\n";
+		size = ::std::stoi(arg);
+		return true;
+	}
+	if (opt == "--divisor") {
+		::std::cerr << "setting divisor to " << arg << "\n";
+		divisor = ::std::stoi(arg);
 		return true;
 	}
 	return false;
@@ -38,7 +52,7 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 		return 1;	
 	}
 
-	::std::vector<uint64_t> data(p.parallel, 0xdeadbeefcafebad);
+	::std::vector<uint64_t> data(p.parallel * size, 0xdeadbeefcafebad);
 
 
 	// This is not proper key generation
@@ -49,6 +63,9 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 
 	// HCC is very bad with globals
 	uint64_t local_fd = fd;
+	size_t local_size = size * sizeof(uint64_t);
+	size_t wi_size = size;
+	int local_div = divisor;
 
 	::std::vector<int> ret(p.parallel);
 	// Make sure everyone uses separate buffer
@@ -56,63 +73,68 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 	auto f = [&](hc::tiled_index<1> idx) [[hc]] {
 		int global_i = idx.global[0];
 
-		for (size_t j = 0; j < p.serial; ++j) {
-			data[global_i] = run_des(data[global_i], keys[j]);
-		}
+		for (size_t k = 0; k < wi_size/local_div; ++k)
+			for (size_t j = 0; j < p.serial; ++j) {
+				data[global_i] = run_des(data[global_i], keys[j]);
+			}
 		idx.barrier.wait();
 		uint64_t local_ptr = (uint64_t)&data[global_i];
 		ret[global_i] = sc.send(SYS_pwrite64, {local_fd, local_ptr,
-		                  sizeof(uint64_t), sizeof(uint64_t) * global_i});
+		                        local_size, local_size * global_i});
 	};
 	auto f_s = [&](hc::tiled_index<1> idx) [[hc]] {
 		int global_i = idx.global[0];
 
-		for (size_t j = 0; j < p.serial; ++j) {
-			data[global_i] = run_des(data[global_i], keys[j]);
-		}
+		for (size_t k = 0; k < wi_size/local_div; ++k)
+			for (size_t j = 0; j < p.serial; ++j) {
+				data[global_i] = run_des(data[global_i], keys[j]);
+			}
 		idx.barrier.wait();
 		uint64_t local_ptr = (uint64_t)&data[global_i];
 		ret[global_i] = sc.send(SYS_pwrite64, {local_fd, local_ptr,
-			                  sizeof(uint64_t), sizeof(uint64_t) * global_i});
+		                        local_size, local_size * global_i});
 		idx.barrier.wait();
 	};
 	auto f_n = [&](hc::tiled_index<1> idx) [[hc]] {
 		int global_i = idx.global[0];
 
-		for (size_t j = 0; j < p.serial; ++j) {
-			data[global_i] = run_des(data[global_i], keys[j]);
-		}
+		for (size_t k = 0; k < wi_size/local_div; ++k)
+			for (size_t j = 0; j < p.serial; ++j) {
+				data[global_i] = run_des(data[global_i], keys[j]);
+			}
 		uint64_t local_ptr = (uint64_t)&data[global_i];
 		do {
 			ret[global_i] = sc.send_nonblock(SYS_pwrite64,
 				         {local_fd, local_ptr,
-			                  sizeof(uint64_t), sizeof(uint64_t) * global_i});
+		                          local_size, local_size * global_i});
 		} while (ret[global_i] == EAGAIN);
 	};
 	auto f_w_n = [&](hc::tiled_index<1> idx) [[hc]] {
 		int global_i = idx.global[0];
 
-		for (size_t j = 0; j < p.serial; ++j) {
-			data[global_i] = run_des(data[global_i], keys[j]);
-		}
+		for (size_t k = 0; k < wi_size/local_div; ++k)
+			for (size_t j = 0; j < p.serial; ++j) {
+				data[global_i] = run_des(data[global_i], keys[j]);
+			}
 		uint64_t local_ptr = (uint64_t)&data[global_i];
 		sc.wait_one_free();
 		ret[global_i] = sc.send_nonblock(SYS_pwrite64,
 				         {local_fd, local_ptr,
-			                  sizeof(uint64_t), sizeof(uint64_t) * global_i});
+		                          local_size, local_size * global_i});
 	};
 	auto f_s_n = [&](hc::tiled_index<1> idx) [[hc]] {
 		int global_i = idx.global[0];
 
-		for (size_t j = 0; j < p.serial; ++j) {
-			data[global_i] = run_des(data[global_i], keys[j]);
-		}
+		for (size_t k = 0; k < wi_size/local_div; ++k)
+			for (size_t j = 0; j < p.serial; ++j) {
+				data[global_i] = run_des(data[global_i], keys[j]);
+			}
 		uint64_t local_ptr = (uint64_t)&data[global_i];
 		idx.barrier.wait();
 		do {
 			ret[global_i] = sc.send_nonblock(SYS_pwrite64,
 				         {local_fd, local_ptr,
-			                  sizeof(uint64_t), sizeof(uint64_t) * global_i});
+		                          local_size, local_size * global_i});
 		} while (ret[global_i] == EAGAIN);
 		idx.barrier.wait();
 	};
