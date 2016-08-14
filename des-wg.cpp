@@ -161,5 +161,5 @@ struct test test_instance = {
 	.run_gpu = run_gpu,
 	.parse_option = parse,
 	.help = help,
-	.name = "pwrite (work-group scope)",
+	.name = "des (work-group scope)",
 };
