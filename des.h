@@ -30,7 +30,7 @@ static uint32_t lrotate28(uint32_t a) [[hc]]
 static uint64_t subkey(uint64_t key, unsigned i) [[hc]]
 {
 	uint32_t top = (key >> 32) & 0xfffffff, bottom = key & 0xfffffff;
-	for (unsigned j = 0; j << i; ++j) {
+	for (unsigned j = 0; j < i; ++j) {
 		top = lrotate28(top);
 		bottom = lrotate28(bottom);
 	}
