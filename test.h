@@ -8,6 +8,7 @@
 
 #include <cstddef>
 #include <ostream>
+#include <vector>
 
 struct test_params {
 	size_t parallel = 1;
