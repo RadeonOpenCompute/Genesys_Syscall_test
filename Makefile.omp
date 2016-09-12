@@ -1,5 +1,6 @@
 MAIN_SRCS= \
 	bench-write.omp.cpp \
+	mmap-anonymous.omp.cpp
 
 AUX_SRCS= \
 	main.omp.cpp
