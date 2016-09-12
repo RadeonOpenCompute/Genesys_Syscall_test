@@ -11,6 +11,7 @@
 #include "test.h"
 
 static bool print_maps = false;
+static bool verify = true;
 static size_t size = 4096;
 
 enum {
@@ -21,6 +22,7 @@ static void help(int argc, char *argv[])
 {
 	::std::cerr << "\t--maps\tPrint content of /proc/self/maps\n";
 	::std::cerr << "\t--size\tamount of space to allocate (Default: 4kB)\n";
+	::std::cerr << "\t--no-verify\tVerofy that data written to the mmap-ed area are readable from the CPU (Default: verify)\n";
 }
 
 static bool parse(const ::std::string &opt, const ::std::string &arg)
@@ -31,6 +33,10 @@ static bool parse(const ::std::string &opt, const ::std::string &arg)
 	}
 	if (opt == "--size") {
 		size = ::std::stoi(arg);
+		return true;
+	}
+	if (opt == "--no-verify") {
+		verify = false;
 		return true;
 	}
 	return false;
@@ -46,6 +52,7 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 
 	// HCC is very bad with globals
 	size_t lsize = size;
+	bool lverify = verify;
 
 	auto f = [&](hc::index<1> idx) [[hc]] {
 		int i = idx[0];
@@ -60,7 +67,8 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 					        PROT_READ | PROT_WRITE,
 					        MAP_PRIVATE | MAP_ANONYMOUS,
 						~0ul, 0});
-			*ptr = MAGICK;
+			if (lverify)
+				*ptr = MAGICK;
 			ret[i] = (T)ptr;
 		}
 	};
@@ -78,7 +86,8 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 					        PROT_READ | PROT_WRITE,
 					        MAP_PRIVATE | MAP_ANONYMOUS,
 						~0ul, 0});
-			*ptr = MAGICK;
+			if (lverify)
+				*ptr = MAGICK;
 			ret[i] = (T)ptr;
 			tidx.barrier.wait();
 		}
@@ -106,9 +115,9 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 		maps.close();
 	}
 
-	for (const T& r : ret)
 	if (::std::any_of(ret.begin(), ret.end(), [&](T ret) {
-		return (void*)ret == MAP_FAILED || (*(int*)ret != 0xdeadbeef); }))
+		return ((void*)ret == MAP_FAILED) ||
+		       (lverify && (*(int*)ret != 0xdeadbeef)); }))
 		::std::cerr << "Some memory allocations failed "
 			"or did not carry data\n";
 
@@ -118,11 +127,12 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 			::std::cerr << "Failed memory allocations\n";
 			return 1;
 		}
-		if (*ptr != MAGICK) {
+		if (verify && (*ptr != MAGICK)) {
 			::std::cerr << "Failed data test\n";
 			return 1;
 		}
-		*ptr = 0xcafe; // This would crash.
+		if (lverify)
+			*ptr = 0xcafe; // This would crash.
 		int rc = munmap(ptr, size);
 		if (rc) {
 			::std::cerr << "Failed unmap\n";
@@ -142,13 +152,15 @@ static int run_cpu(const test_params &p, ::std::ostream &O,
 
 	// HCC is very bad with globals
 	size_t lsize = size;
+	bool lverify = verify;
 
 	auto start = ::std::chrono::high_resolution_clock::now();
 	for (size_t i = 0; i < p.parallel; ++i) {
 		for (size_t j = 0; j < p.serial; ++j) {
 			int * ptr = (int*)mmap(0, lsize, PROT_READ | PROT_WRITE,
 				MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-			*ptr = MAGICK;
+			if (lverify)
+				*ptr = MAGICK;
 			ret[i] = (T)ptr;
 		}
 	};
@@ -166,9 +178,9 @@ static int run_cpu(const test_params &p, ::std::ostream &O,
 		maps.close();
 	}
 
-	for (const T& r : ret)
 	if (::std::any_of(ret.begin(), ret.end(), [&](T ret) {
-		return (void*)ret == MAP_FAILED || (*(int*)ret != 0xdeadbeef); }))
+		return ((void*)ret == MAP_FAILED) ||
+		       (lverify && (*(int*)ret != 0xdeadbeef)); }))
 		::std::cerr << "Some memory allocations failed "
 			"or did not carry data\n";
 
@@ -178,11 +190,12 @@ static int run_cpu(const test_params &p, ::std::ostream &O,
 			::std::cerr << "Failed memory allocations\n";
 			return 1;
 		}
-		if (*ptr != MAGICK) {
+		if (lverify && (*ptr != MAGICK)) {
 			::std::cerr << "Failed data test\n";
 			return 1;
 		}
-		*ptr = 0xcafe; // This would crash.
+		if (lverify)
+			*ptr = 0xcafe; // This would crash.
 		int rc = munmap(ptr, size);
 		if (rc) {
 			::std::cerr << "Failed unmap\n";
