@@ -19,6 +19,7 @@ MAIN_SRCS= \
 	mmap-anonymous.cpp \
 	mmap-file.cpp \
 	munmap.cpp \
+	open.cpp \
 	seek.cpp
 
 AUX_SRCS= \
