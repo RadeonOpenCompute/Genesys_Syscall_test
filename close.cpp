@@ -58,6 +58,17 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 		}
 	};
 	auto f_n = [&](hc::index<1> idx) [[hc]] {
+		int i = idx[0];
+		for (size_t j = 0; j < p.serial; ++j) {
+			// we don't need to wait here, since
+			// blocking operation guarantees
+			// available slots
+			int lret;
+			do {
+				lret = sc.send_nonblock(SYS_close, {(uint64_t)fds[i]});
+			} while (lret == EAGAIN);
+			ret[i] = lret;
+		}
 	};
 	auto f_w_n = [&](hc::index<1> idx) [[hc]] {
 	};
