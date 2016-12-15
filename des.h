@@ -46,7 +46,9 @@ static uint32_t faisal(uint32_t halfblock, uint64_t subkey) [[hc]]
 	halfblock = 0;
 	expanded ^= subkey;
 	for (int i = 0; i < 8; ++i)
-		halfblock |= sbox[(expanded >> (i * 6)) & 0x3f] << (i * 4);
+		halfblock |= ((expanded >> (i * 6)) & 0x3f) << (i * 4);
+//		TODO: Enable this when the compiler stops crashing on global variables
+//		halfblock |= sbox[(expanded >> (i * 6)) & 0x3f] << (i * 4);
 	
 	//TODO: we need to permute here
 	return halfblock;
