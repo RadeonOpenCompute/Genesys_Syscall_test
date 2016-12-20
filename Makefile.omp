@@ -12,13 +12,7 @@ AUX_OBJS=$(AUX_SRCS:.cpp=.o)
 OBJS=$(SRCS:.cpp=.o)
 DEPS=$(SRCS:.cpp=.d)
 
-CXX=~/.local/bin/clang++
-LLVM_CONFIG=~/.local/bin/llvm-config
-
-#hcc-config mixes compiler and preprocessor flags
-LLVM_CPPFLAGS=$(shell $(LLVM_CONFIG) --cxxflags)
-LLVM_CXXFLAGS=$(shell $(LLVM_CONFIG) --cxxflags)
-LLVM_LDFLAGS=$(shell $(LLVM_CONFIG) --ldflags)
+CXX=g++
 
 CPP_FLAGS=$(LLVM_CPPFLAGS)
 CXX_FLAGS=$(LLVM_CXXFLAGS) -g -O3 -fopenmp -std=c++11

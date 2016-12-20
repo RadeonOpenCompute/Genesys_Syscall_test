@@ -116,8 +116,5 @@ static int run_cpu(const test_params &p, ::std::ostream &O,
 
 
 struct test test_instance = {
-	.run_cpu = run_cpu,
-	.parse_option = parse,
-	.help = help,
-	.name = "mmap Anonymous",
+	NULL, run_cpu, help, parse, "mmap Anonymous"
 };
