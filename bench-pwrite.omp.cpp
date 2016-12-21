@@ -116,5 +116,5 @@ static int run_cpu(const test_params &p, ::std::ostream &O,
 };
 
 struct test test_instance = {
-	NULL, &run_cpu, &help, &parse, "OMP write"
+	NULL, &run_cpu, &help, &parse, "OMP pwrite"
 };
