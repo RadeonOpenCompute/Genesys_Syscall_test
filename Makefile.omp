@@ -14,7 +14,7 @@ DEPS=$(SRCS:.cpp=.d)
 
 CXX=g++
 
-CPP_FLAGS=$(LLVM_CPPFLAGS)
+CPP_FLAGS=$(LLVM_CPPFLAGS) -std=c++11
 CXX_FLAGS=$(LLVM_CXXFLAGS) -g -O3 -fopenmp -std=c++11
 LD_FLAGS=$(LLVM_LDFLAGS) -fopenmp
 
