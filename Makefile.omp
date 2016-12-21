@@ -1,4 +1,5 @@
 MAIN_SRCS= \
+	bench-pwrite.omp.cpp \
 	bench-write.omp.cpp \
 	mmap-anonymous.omp.cpp
 
