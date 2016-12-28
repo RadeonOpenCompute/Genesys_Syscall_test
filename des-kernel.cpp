@@ -71,6 +71,7 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 	uint64_t local_ptr = (uint64_t)data.data();
 	size_t wi_size = size;
 	int local_div = divisor;
+	const uint8_t *lsbox = sbox;
 
 	::std::atomic_uint lock, post_lock;
 	lock = 0;
@@ -85,7 +86,7 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 
 		for (size_t k = 0; k < wi_size/local_div; ++k)
 			for (size_t j = 0; j < p.serial; ++j) {
-				data[global_i] = run_des(data[global_i], keys[j]);
+				data[global_i] = run_des(data[global_i], keys[j], lsbox);
 			}
 		if (local_i == 0 && ((++lock * idx.tile_dim[0]) == p.parallel)) {
 			ret[0] = sc.send(SYS_pwrite64, {local_fd, local_ptr,
@@ -98,7 +99,7 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 
 		for (size_t k = 0; k < wi_size/local_div; ++k)
 			for (size_t j = 0; j < p.serial; ++j) {
-				data[global_i] = run_des(data[global_i], keys[j]);
+				data[global_i] = run_des(data[global_i], keys[j], lsbox);
 			}
 		if (local_i == 0 && ((++lock * idx.tile_dim[0]) == p.parallel)) {
 			ret[0] = sc.send(SYS_pwrite64, {local_fd, local_ptr,
@@ -115,7 +116,7 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 
 		for (size_t k = 0; k < wi_size/local_div; ++k)
 			for (size_t j = 0; j < p.serial; ++j) {
-				data[global_i] = run_des(data[global_i], keys[j]);
+				data[global_i] = run_des(data[global_i], keys[j], lsbox);
 			}
 		if (local_i == 0 && ((++lock * idx.tile_dim[0]) == p.parallel)) {
 			do {
@@ -131,7 +132,7 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 
 		for (size_t k = 0; k < wi_size/local_div; ++k)
 			for (size_t j = 0; j < p.serial; ++j) {
-				data[global_i] = run_des(data[global_i], keys[j]);
+				data[global_i] = run_des(data[global_i], keys[j], lsbox);
 			}
 		if (local_i == 0 && ((++lock * idx.tile_dim[0]) == p.parallel)) {
 			sc.wait_one_free();
@@ -146,7 +147,7 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 
 		for (size_t k = 0; k < wi_size/local_div; ++k)
 			for (size_t j = 0; j < p.serial; ++j) {
-				data[global_i] = run_des(data[global_i], keys[j]);
+				data[global_i] = run_des(data[global_i], keys[j], lsbox);
 			}
 		if (local_i == 0 && ((++lock * idx.tile_dim[0]) == p.parallel)) {
 			do {

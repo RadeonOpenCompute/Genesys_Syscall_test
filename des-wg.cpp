@@ -66,6 +66,7 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 	uint64_t tile_size = sizeof(uint64_t) * p.wg_size * size;
 	size_t local_size = size;
 	int local_div = divisor;
+	const uint8_t *lsbox = sbox;
 
 	::std::vector<int> ret(p.parallel / p.wg_size);
 	// Make sure everyone uses separate buffer
@@ -77,7 +78,7 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 
 		for (size_t k = 0; k < local_size/local_div; ++k)
 			for (size_t j = 0; j < p.serial; ++j) {
-				data[global_i * local_size + k] = run_des(data[global_i * local_size + k], keys[j]);
+				data[global_i * local_size + k] = run_des(data[global_i * local_size + k], keys[j], lsbox);
 			}
 		idx.barrier.wait();
 		if (local_i == 0) {
@@ -94,7 +95,7 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 
 		for (size_t k = 0; k < local_size/local_div; ++k)
 			for (size_t j = 0; j < p.serial; ++j) {
-				data[global_i * local_size + k] = run_des(data[global_i * local_size + k], keys[j]);
+				data[global_i * local_size + k] = run_des(data[global_i * local_size + k], keys[j], lsbox);
 			}
 		idx.barrier.wait();
 		if (local_i == 0) {
@@ -112,7 +113,7 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 
 		for (size_t k = 0; k < local_size/local_div; ++k)
 			for (size_t j = 0; j < p.serial; ++j) {
-				data[global_i * local_size + k] = run_des(data[global_i * local_size + k], keys[j]);
+				data[global_i * local_size + k] = run_des(data[global_i * local_size + k], keys[j], lsbox);
 			}
 		idx.barrier.wait();
 		if (local_i == 0) {
@@ -131,7 +132,7 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 
 		for (size_t k = 0; k < local_size/local_div; ++k)
 			for (size_t j = 0; j < p.serial; ++j) {
-				data[global_i * local_size + k] = run_des(data[global_i * local_size + k], keys[j]);
+				data[global_i * local_size + k] = run_des(data[global_i * local_size + k], keys[j], lsbox);
 			}
 		idx.barrier.wait();
 		if (local_i == 0) {
@@ -149,7 +150,7 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 
 		for (size_t k = 0; k < local_size/local_div; ++k)
 			for (size_t j = 0; j < p.serial; ++j) {
-				data[global_i * local_size + k] = run_des(data[global_i * local_size + k], keys[j]);
+				data[global_i * local_size + k] = run_des(data[global_i * local_size + k], keys[j], lsbox);
 			}
 		idx.barrier.wait();
 		if (local_i == 0) {

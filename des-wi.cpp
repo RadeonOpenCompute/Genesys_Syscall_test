@@ -66,6 +66,7 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 	size_t local_size = size * sizeof(uint64_t);
 	size_t wi_size = size;
 	int local_div = divisor;
+	const uint8_t *lsbox = sbox;
 
 	::std::vector<int> ret(p.parallel);
 	// Make sure everyone uses separate buffer
@@ -75,7 +76,7 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 
 		for (size_t k = 0; k < wi_size/local_div; ++k)
 			for (size_t j = 0; j < p.serial; ++j) {
-				data[global_i] = run_des(data[global_i], keys[j]);
+				data[global_i] = run_des(data[global_i], keys[j], lsbox);
 			}
 		idx.barrier.wait();
 		uint64_t local_ptr = (uint64_t)&data[global_i];
@@ -87,7 +88,7 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 
 		for (size_t k = 0; k < wi_size/local_div; ++k)
 			for (size_t j = 0; j < p.serial; ++j) {
-				data[global_i] = run_des(data[global_i], keys[j]);
+				data[global_i] = run_des(data[global_i], keys[j], lsbox);
 			}
 		idx.barrier.wait();
 		uint64_t local_ptr = (uint64_t)&data[global_i];
@@ -100,7 +101,7 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 
 		for (size_t k = 0; k < wi_size/local_div; ++k)
 			for (size_t j = 0; j < p.serial; ++j) {
-				data[global_i] = run_des(data[global_i], keys[j]);
+				data[global_i] = run_des(data[global_i], keys[j], lsbox);
 			}
 		uint64_t local_ptr = (uint64_t)&data[global_i];
 		do {
@@ -114,7 +115,7 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 
 		for (size_t k = 0; k < wi_size/local_div; ++k)
 			for (size_t j = 0; j < p.serial; ++j) {
-				data[global_i] = run_des(data[global_i], keys[j]);
+				data[global_i] = run_des(data[global_i], keys[j], lsbox);
 			}
 		uint64_t local_ptr = (uint64_t)&data[global_i];
 		sc.wait_one_free();
@@ -127,7 +128,7 @@ static int run_gpu(const test_params &p, ::std::ostream &O, syscalls &sc,
 
 		for (size_t k = 0; k < wi_size/local_div; ++k)
 			for (size_t j = 0; j < p.serial; ++j) {
-				data[global_i] = run_des(data[global_i], keys[j]);
+				data[global_i] = run_des(data[global_i], keys[j], lsbox);
 			}
 		uint64_t local_ptr = (uint64_t)&data[global_i];
 		idx.barrier.wait();
