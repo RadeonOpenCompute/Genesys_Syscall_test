@@ -80,7 +80,7 @@ template<class F, class FS, class FN, class FNS, class FNW>
 void test_run(const test_params &p, const syscalls &sc,
               F& f, FS &fs, FN &fn, FNS &fns, FNW &fnw)
 {
-	auto extent = hc::extent<1>::extent(p.parallel);
+	auto extent = hc::extent<1>(p.parallel);
 	if (!p.non_block) {
 		if (p.gpu_sync_before)
 			parallel_for_each(extent.tile(p.wg_size), fs).wait();
