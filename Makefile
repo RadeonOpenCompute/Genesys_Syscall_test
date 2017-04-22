@@ -32,8 +32,8 @@ AUX_OBJS=$(AUX_SRCS:.cpp=.o)
 OBJS=$(SRCS:.cpp=.o)
 DEPS=$(SRCS:.cpp=.d)
 
-HCC_CONFIG=/opt/hcc-amdgpu/bin/hcc-config
-CXX=/opt/hcc-amdgpu/bin/hcc
+HCC_CONFIG=/opt/rocm/hcc-amdgpu/bin/hcc-config
+CXX=/opt/rocm/hcc-amdgpu/bin/hcc
 
 #hcc-config mixes compiler and preprocessor flags
 HCC_CPPFLAGS=$(shell $(HCC_CONFIG) --cxxflags --install)
