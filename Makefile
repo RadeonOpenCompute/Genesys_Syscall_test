@@ -16,6 +16,7 @@ MAIN_SRCS= \
 	des-kernel.cpp \
 	des-wg.cpp \
 	des-wi.cpp \
+	getrusage.cpp \
 	mmap-anonymous.cpp \
 	mmap-file.cpp \
 	munmap.cpp \
