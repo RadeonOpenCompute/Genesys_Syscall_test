@@ -22,7 +22,7 @@ static void help(int argc, char *argv[])
 {
 	::std::cerr << "\t--maps\tPrint content of /proc/self/maps\n";
 	::std::cerr << "\t--size\tamount of space to allocate (Default: 4kB)\n";
-	::std::cerr << "\t--no-verify\tVerofy that data written to the mmap-ed area are readable from the CPU (Default: verify)\n";
+	::std::cerr << "\t--no-verify\tVerify that data written to the mmap-ed area are readable from the CPU (Default: verify)\n";
 }
 
 static bool parse(const ::std::string &opt, const ::std::string &arg)
