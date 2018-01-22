@@ -16,6 +16,7 @@ MAIN_SRCS= \
 	des-kernel.cpp \
 	des-wg.cpp \
 	des-wi.cpp \
+	fb.cpp \
 	getrusage.cpp \
 	sigqueue.cpp \
 	mmap-anonymous.cpp \
